@@ -41,7 +41,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.remotedisplay.player"
+        applicationId = "br.com.arcosistemas.indoor"
         minSdk = 23
         targetSdk = 34
         // Env-overridable so device-owner reinstalls (which require an ever-increasing
@@ -53,9 +53,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../release-key.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD") as String? ?: ""
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD") as String? ?: "arcoplay2026"
             keyAlias = System.getenv("KEY_ALIAS") ?: findProperty("KEY_ALIAS") as String? ?: "remotedisplay"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD") as String? ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD") as String? ?: "arcoplay2026"
             // #81: AGP ignores enableV1Signing at minSdk>=24, so assembleRelease emits a
             // v2-only APK. The v1 (JAR) signature that some MDM-managed signage (MAXHUB)
             // requires is added by the `resignReleaseV1` task below (apksigner re-sign).
@@ -64,11 +64,11 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -226,8 +226,8 @@ tasks.register<Exec>("resignReleaseV1") {
             File(buildTools, "apksigner").absolutePath, "sign",
             "--ks", file("../release-key.jks").absolutePath,
             "--ks-key-alias", (System.getenv("KEY_ALIAS") ?: "remotedisplay"),
-            "--ks-pass", "pass:" + (System.getenv("KEYSTORE_PASSWORD") ?: ""),
-            "--key-pass", "pass:" + (System.getenv("KEY_PASSWORD") ?: ""),
+            "--ks-pass", "pass:" + (System.getenv("KEYSTORE_PASSWORD") ?: "arcoplay2026"),
+            "--key-pass", "pass:" + (System.getenv("KEY_PASSWORD") ?: "arcoplay2026"),
             "--v1-signing-enabled", "true",
             "--v2-signing-enabled", "true",
             "--v3-signing-enabled", "true",

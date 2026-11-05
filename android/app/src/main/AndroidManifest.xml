@@ -72,8 +72,9 @@
     <application
         android:name=".RemoteDisplayApp"
         android:allowBackup="false"
-        android:icon="@android:drawable/ic_media_play"
-        android:label="RemoteDisplay"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/banner"
+        android:label="@string/app_name"
         android:largeHeap="true"
         android:theme="@style/Theme.RemoteDisplay"
         android:usesCleartextTraffic="true"
@@ -96,6 +97,8 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="nosensor"
             android:theme="@style/Theme.RemoteDisplay.Fullscreen"
+            android:banner="@drawable/banner"
+            android:icon="@mipmap/ic_launcher"
             android:keepScreenOn="true"
             android:launchMode="singleTask">
             <intent-filter>
@@ -124,7 +127,9 @@
             android:name=".SetupActivity"
             android:exported="false"
             android:screenOrientation="nosensor"
-            android:theme="@style/Theme.RemoteDisplay.Fullscreen" />
+            android:theme="@style/Theme.RemoteDisplay.Fullscreen"
+            android:banner="@drawable/banner"
+            android:icon="@mipmap/ic_launcher" />
 
         <!-- #device-owner: MDM-deploy-only guided screen to enable the accessibility service
              (remote control). Self-guards to owner; a normal install never routes here. -->
@@ -132,14 +137,18 @@
             android:name=".OwnerAccessibilityActivity"
             android:exported="false"
             android:screenOrientation="nosensor"
-            android:theme="@style/Theme.RemoteDisplay.Fullscreen" />
+            android:theme="@style/Theme.RemoteDisplay.Fullscreen"
+            android:banner="@drawable/banner"
+            android:icon="@mipmap/ic_launcher" />
 
         <!-- Provisioning/setup activity -->
         <activity
             android:name=".ProvisioningActivity"
             android:exported="false"
             android:screenOrientation="nosensor"
-            android:theme="@style/Theme.RemoteDisplay.Fullscreen" />
+            android:theme="@style/Theme.RemoteDisplay.Fullscreen"
+            android:banner="@drawable/banner"
+            android:icon="@mipmap/ic_launcher" />
 
         <!-- WebSocket foreground service. #5: declares ONLY mediaPlayback - the
              always-on service must not claim the mediaProjection FGS type, which

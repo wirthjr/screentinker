@@ -2521,6 +2521,10 @@
        */
       document.querySelectorAll('video, audio').forEach((el) => {
         if (isOverlayMedia(el)) return;   // the overlay belongs to the trigger/PiP engines
+        if (el.__stZoneNonPrimary) {
+          try { el.muted = true; } catch (e) {}
+          return;
+        }
         try { el.muted = want || baseAudioSuppressed; } catch (e) { /* torn down */ }
       });
       if (activeYtPlayer) {
@@ -2708,8 +2712,8 @@
     // throw away the gesture's user-activation in stricter browsers (Firefox).
     // Returns immediately; the play() promise is resolved/rejected async.
     function tryUnmuteLeader() {
-      const video = document.querySelector('#playerContainer video');
-      if (!video) return false;
+      const video = document.querySelector('#playerContainer > video, #playerContainer > div > video');
+      if (!video || video.__stZoneNonPrimary) return false;
       // Scoped to #playerContainer, so this is BASE media by construction — un-muting it while an
       // overlay covers the screen is exactly the double-audio bug this suppression exists to stop.
       if (baseAudioSuppressed) return false;
@@ -3139,6 +3143,7 @@
        */
       document.querySelectorAll('video').forEach(v => {
         if (baseAudioSuppressed && !isOverlayMedia(v)) return;
+        if (v.__stZoneNonPrimary) return;
         v.muted = false;
       });
       // Unmute the active YouTube embed (iframe — querySelectorAll('video') misses it)
@@ -7119,7 +7124,7 @@
             // #217: cap quality at 720p for items flagged "unstable connection" so weak
             // WiFi doesn't stall on an auto-selected 1080p+ stream. vq is a hint the player
             // may still override, so we also call setPlaybackQuality in onReady below.
-            vq: item.unstable_connection ? 'hd720' : undefined,
+            vq: item.unstable_connection ? 'hd720' : (zoneMode ? 'large' : undefined),
           },
           events: {
             onReady: (event) => {
@@ -7179,7 +7184,14 @@
             onStateChange: (event) => {
               if (!alive()) return;
               // Track when video actually starts playing
-              if (event.data === 1) playStartTime = Date.now();
+              if (event.data === 1) {
+                playStartTime = Date.now();
+                if (!shouldLoop && done) {
+                  let duration = 0;
+                  try { duration = event.target.getDuration(); } catch {}
+                  if (duration > 0) setSafety((duration + 3) * 1000);
+                }
+              }
               // YT.PlayerState.ENDED = 0 — advance to next video
               // Ignore ENDED if video played for less than 3 seconds (spurious during init)
               if (event.data === 0 && !shouldLoop && done && (Date.now() - playStartTime) > 3000) {
@@ -8910,6 +8922,10 @@
         // zones and the synthetic '__trigger__' zone, and audio suppression must be able to tell
         // them apart even after the element is detached (#146) or before it is appended.
         video.__stOverlay = !!div.__stOverlay;
+        video.__stZoneNonPrimary = (zone.sort_order > 0);
+        if (zone.sort_order > 0) {
+          video.addEventListener('volumechange', () => { if (!video.muted) video.muted = true; });
+        }
         /*
          * ⚠️ An overlay zone (the synthetic '__trigger__') has no sort_order, so `undefined > 0`
          * is false and the alarm used to be born UNMUTED — which on a panel with no user gesture
