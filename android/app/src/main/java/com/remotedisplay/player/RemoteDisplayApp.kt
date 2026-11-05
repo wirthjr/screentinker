@@ -22,6 +22,7 @@ class RemoteDisplayApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.remotedisplay.player.util.LanguageManager.applySavedLanguage(this)
         createNotificationChannel()
         installCrashExitSignal()
     }

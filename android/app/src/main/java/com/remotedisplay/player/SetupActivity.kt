@@ -103,6 +103,10 @@ class SetupActivity : AppCompatActivity() {
         )
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        findViewById<Button>(R.id.languageBtn)?.setOnClickListener {
+            com.remotedisplay.player.util.LanguageManager.showLanguageDialog(this) { recreate() }
+        }
+
         accessibilityStatus = findViewById(R.id.accessibilityStatus)
         installStatus = findViewById(R.id.installStatus)
         notificationStatus = findViewById(R.id.notificationStatus)
@@ -268,7 +272,7 @@ class SetupActivity : AppCompatActivity() {
      */
     private fun bindPermissionButton(btn: Button, granted: Boolean, enableLabel: String) {
         btn.visibility = View.VISIBLE
-        btn.text = if (granted) "Manage" else enableLabel
+        btn.text = if (granted) getString(R.string.btn_manage) else enableLabel
     }
 
     /** Last-resort destination: this app's own settings page, where everything can be reached. */
@@ -316,76 +320,80 @@ class SetupActivity : AppCompatActivity() {
     }
 
     private fun updateStatuses() {
+        val onText = getString(R.string.status_on)
+        val offText = getString(R.string.status_off)
+        val enableText = getString(R.string.btn_enable)
+
         // Accessibility
         val accessibilityEnabled = isAccessibilityEnabled()
-        accessibilityStatus.text = if (accessibilityEnabled) "ON" else "OFF"
+        accessibilityStatus.text = if (accessibilityEnabled) onText else offText
         accessibilityStatus.setTextColor(
             if (accessibilityEnabled) 0xFF22C55E.toInt() else 0xFFEF4444.toInt()
         )
-        bindPermissionButton(enableAccessibilityBtn, accessibilityEnabled, "Enable")
+        bindPermissionButton(enableAccessibilityBtn, accessibilityEnabled, enableText)
 
         // Install unknown apps
         val canInstall = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             packageManager.canRequestPackageInstalls()
         } else true
-        installStatus.text = if (canInstall) "ON" else "OFF"
+        installStatus.text = if (canInstall) onText else offText
         installStatus.setTextColor(
             if (canInstall) 0xFF22C55E.toInt() else 0xFFEF4444.toInt()
         )
-        bindPermissionButton(enableInstallBtn, canInstall, "Enable")
+        bindPermissionButton(enableInstallBtn, canInstall, enableText)
 
         // Notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val hasNotif = ContextCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-            notificationStatus.text = if (hasNotif) "ON" else "OFF"
+            notificationStatus.text = if (hasNotif) onText else offText
             notificationStatus.setTextColor(
                 if (hasNotif) 0xFF22C55E.toInt() else 0xFFEF4444.toInt()
             )
-            bindPermissionButton(findViewById(R.id.enableNotificationBtn), hasNotif, "Enable")
+            bindPermissionButton(findViewById(R.id.enableNotificationBtn), hasNotif, enableText)
         }
 
         // Launch on boot (full-screen intent — only restrictable on Android 14+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val canFsi = getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
-            fullscreenStatus.text = if (canFsi) "ON" else "OFF"
+            fullscreenStatus.text = if (canFsi) onText else offText
             fullscreenStatus.setTextColor(if (canFsi) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
-            bindPermissionButton(enableFullscreenBtn, canFsi, "Enable")
+            bindPermissionButton(enableFullscreenBtn, canFsi, enableText)
         }
 
         // Battery optimization exemption
         val ignoringBattery = (getSystemService(Context.POWER_SERVICE) as PowerManager)
             .isIgnoringBatteryOptimizations(packageName)
-        batteryStatus.text = if (ignoringBattery) "ON" else "OFF"
+        batteryStatus.text = if (ignoringBattery) onText else offText
         batteryStatus.setTextColor(if (ignoringBattery) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
-        bindPermissionButton(enableBatteryBtn, ignoringBattery, "Enable")
+        bindPermissionButton(enableBatteryBtn, ignoringBattery, enableText)
 
         // Display over other apps
         val canOverlay = Settings.canDrawOverlays(this)
-        overlayStatus.text = if (canOverlay) "ON" else "OFF"
+        overlayStatus.text = if (canOverlay) onText else offText
         overlayStatus.setTextColor(if (canOverlay) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
-        bindPermissionButton(enableOverlayBtn, canOverlay, "Enable")
+        bindPermissionButton(enableOverlayBtn, canOverlay, enableText)
 
         // #160 WRITE_SETTINGS (system brightness / screen-off timeout)
         val canWrite = Settings.System.canWrite(this)
-        writeSettingsStatus.text = if (canWrite) "ON" else "OFF"
+        writeSettingsStatus.text = if (canWrite) onText else offText
         writeSettingsStatus.setTextColor(if (canWrite) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
-        bindPermissionButton(enableWriteSettingsBtn, canWrite, "Enable")
+        bindPermissionButton(enableWriteSettingsBtn, canWrite, enableText)
 
         // Optional Wi-Fi-name permission
         val hasLoc = hasLocationPermission()
         val locationStatus = findViewById<TextView>(R.id.locationStatus)
-        locationStatus.text = if (hasLoc) "ON" else "OFF"
+        locationStatus.text = if (hasLoc) onText else offText
         locationStatus.setTextColor(if (hasLoc) 0xFF22C55E.toInt() else 0xFF64748B.toInt())
-        bindPermissionButton(findViewById(R.id.enableLocationBtn), hasLoc, "Enable")
+        bindPermissionButton(findViewById(R.id.enableLocationBtn), hasLoc, enableText)
 
         // Default launcher (HOME): kiosk foreground stability requires being the default launcher.
         val isDefaultHome = isDefaultLauncher()
         val launcherStatus = findViewById<TextView>(R.id.launcherStatus)
-        launcherStatus.text = if (isDefaultHome) "ON" else "OFF"
+        launcherStatus.text = if (isDefaultHome) onText else offText
         launcherStatus.setTextColor(if (isDefaultHome) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
-        bindPermissionButton(findViewById(R.id.enableLauncherBtn), isDefaultHome, "Set")
+        bindPermissionButton(findViewById(R.id.enableLauncherBtn), isDefaultHome, getString(R.string.btn_set))
 
         // Update continue button text
         val allGood = accessibilityEnabled && canInstall
@@ -394,8 +402,8 @@ class SetupActivity : AppCompatActivity() {
         // overwritten. In review mode there is nothing to continue TO; the only action is going back.
         continueBtn.text = when {
             manageOnly -> getString(R.string.settings_perm_done)
-            allGood -> "Continue to Setup"
-            else -> "Continue Anyway"
+            allGood -> getString(R.string.btn_continue)
+            else -> getString(R.string.btn_continue_anyway)
         }
     }
 

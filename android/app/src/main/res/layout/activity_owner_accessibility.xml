@@ -30,7 +30,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="One last step: enable remote control"
+                android:text="@string/owner_a11y_title"
                 android:textColor="#F1F5F9"
                 android:textSize="20sp"
                 android:textStyle="bold"
@@ -43,7 +43,7 @@
                 android:maxWidth="560dp"
                 android:gravity="center"
                 android:lineSpacingMultiplier="1.25"
-                android:text="This managed panel needs ScreenTinker’s accessibility service so you can view and control it remotely. Android requires this one switch to be turned on by hand — it’s the only step we can’t do for you."
+                android:text="@string/owner_a11y_desc"
                 android:textColor="#94A3B8"
                 android:textSize="13sp" />
 
@@ -55,7 +55,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="8dp"
                 android:background="@drawable/pill_bg"
-                android:text="●  Accessibility service: OFF"
+                android:text="@string/owner_a11y_status_off"
                 android:textColor="#EF4444"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -91,7 +91,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Allow restricted settings"
+                        android:text="@string/owner_a11y_step1_title"
                         android:textColor="#F1F5F9"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -101,7 +101,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:lineSpacingMultiplier="1.2"
-                        android:text="On the app’s info page, tap the ⋮ menu (top-right) → “Allow restricted settings”."
+                        android:text="@string/owner_a11y_step1_desc"
                         android:textColor="#94A3B8"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -129,7 +129,7 @@
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="10dp"
                     android:background="@drawable/button_primary"
-                    android:text="App info"
+                    android:text="@string/btn_app_info"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textAllCaps="false" />
@@ -166,7 +166,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Turn ScreenTinker on"
+                        android:text="@string/owner_a11y_step2_title"
                         android:textColor="#F1F5F9"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -176,7 +176,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:lineSpacingMultiplier="1.2"
-                        android:text="In Accessibility, pick ScreenTinker, flip the switch On, and confirm Allow."
+                        android:text="@string/owner_a11y_step2_desc"
                         android:textColor="#94A3B8"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -201,7 +201,7 @@
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="10dp"
                     android:background="@drawable/button_primary"
-                    android:text="Accessibility"
+                    android:text="@string/btn_accessibility"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textAllCaps="false" />
@@ -221,7 +221,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Skip for now"
+                    android:text="@string/skip_for_now"
                     android:textColor="#64748B"
                     android:textSize="13sp"
                     android:paddingVertical="10dp" />
@@ -235,7 +235,7 @@
                     android:paddingHorizontal="24dp"
                     android:paddingVertical="12dp"
                     android:background="@drawable/button_primary"
-                    android:text="Continue"
+                    android:text="@string/btn_continue_plain"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -248,7 +248,7 @@
                 android:layout_marginTop="14dp"
                 android:maxWidth="620dp"
                 android:gravity="center"
-                android:text="Playback works without this — it only enables remote view &amp; control."
+                android:text="@string/owner_a11y_footer"
                 android:textColor="#475569"
                 android:textSize="11sp" />
         </LinearLayout>

@@ -31,10 +31,26 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Digital Signage Player"
+            android:text="@string/digital_signage_player"
             android:textColor="#94A3B8"
             android:textSize="14sp"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/languageBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="@string/settings_language"
+            android:textColor="#3B82F6"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp" />
 
         <!-- Server URL Section (hidden once paired so the code has room) -->
         <LinearLayout
@@ -47,7 +63,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Server URL"
+                android:text="@string/server_url"
                 android:textColor="#94A3B8"
                 android:textSize="14sp"
                 android:layout_marginBottom="8dp" />
@@ -71,7 +87,7 @@
             android:id="@+id/connectBtn"
             android:layout_width="400dp"
             android:layout_height="48dp"
-            android:text="Connect"
+            android:text="@string/btn_connect"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -97,7 +113,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pairing Code"
+                android:text="@string/pairing_code"
                 android:textColor="#94A3B8"
                 android:textSize="16sp"
                 android:layout_marginBottom="12dp" />
@@ -125,7 +141,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Enter this code in the dashboard to pair this display"
+                android:text="@string/pairing_code_hint"
                 android:textColor="#64748B"
                 android:textSize="14sp"
                 android:layout_marginTop="16dp"

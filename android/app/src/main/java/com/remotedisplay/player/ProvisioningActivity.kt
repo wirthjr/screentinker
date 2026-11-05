@@ -110,12 +110,18 @@ class ProvisioningActivity : AppCompatActivity() {
             serverUrlInput.setText(config.serverUrl)
         }
 
+        findViewById<Button>(R.id.languageBtn)?.setOnClickListener {
+            com.remotedisplay.player.util.LanguageManager.showLanguageDialog(this) { recreate() }
+        }
+
         connectBtn.setOnClickListener {
-            val url = serverUrlInput.text.toString().trim().trimEnd('/')
+            val raw = serverUrlInput.text.toString().trim()
+            val url = ServerConfig.normalizeUrl(raw)
             if (url.isEmpty()) {
                 statusText.text = "Please enter the server URL"
                 return@setOnClickListener
             }
+            serverUrlInput.setText(url)
             config.serverUrl = url
             connectToServer(url)
         }

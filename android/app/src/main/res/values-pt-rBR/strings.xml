@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Arco Indoor</string>
+    <string name="accessibility_description">O RemoteDisplay usa acessibilidade para habilitar controles remotos de energia e navegação do sistema.</string>
+    <string name="device_admin_description">Permite que o ScreenTinker execute como um quiosque não supervisionado: atualizações silenciosas, reinicialização agendada, bloqueio de tarefas e controle de tela/hora. Opcional — o aplicativo funciona sem isso.</string>
+    <string name="nothing_scheduled">Nada programado no momento</string>
+    <string name="waiting_for_content">Aguardando conteúdo…</string>
+
+    <!-- Menu de configurações oculto (acionado por 2x VOLTAR ou ESC, protegido por PIN) -->
+    <string name="settings_pin_title">Digite o PIN</string>
+    <string name="settings_pin_wrong">PIN incorreto</string>
+    <string name="settings_pin_hint">PIN</string>
+    <string name="settings_title">Configurações</string>
+    <string name="settings_change_server">Alterar URL do servidor</string>
+    <string name="settings_reconfigure">Reconfigurar dispositivo (reemparelhar)</string>
+    <string name="settings_device_info">Informações do dispositivo</string>
+    <string name="settings_hardware_control">Controle de hardware</string>
+    <string name="settings_language">Idioma / Language</string>
+    <string name="settings_language_title">Selecione o Idioma</string>
+
+    <!-- Idiomas suportados -->
+    <string name="lang_system_default">Padrão do sistema</string>
+    <string name="lang_pt_br">Português (Brasil)</string>
+    <string name="lang_en">English</string>
+    <string name="lang_es">Español</string>
+    <string name="lang_de">Deutsch</string>
+    <string name="lang_fr">Français</string>
+    <string name="lang_hi">हिन्दी</string>
+
+    <string name="hw_tier_owner">Nível 2 — proprietário do dispositivo (controle total)</string>
+    <string name="hw_tier_admin">Nível 1 — administrador do dispositivo (apenas bloqueio de tela)</string>
+    <string name="hw_tier_none">Nível 0 — padrão (sem controle do sistema)</string>
+    <string name="hw_tier_managed">Gerenciado por outro proprietário de dispositivo (MDM)</string>
+    <string name="hw_owner_note">Este painel é proprietário do dispositivo: atualizações silenciosas, reinicialização, modo quiosque e controle de hora estão disponíveis.</string>
+    <string name="hw_managed_note">Outro aplicativo (MDM/DPC) é o proprietário do dispositivo, portanto o ScreenTinker executa no Nível 0/1. O MDM gerencia atualizações e o controle do sistema.</string>
+    <string name="hw_enroll_intro">Para desbloquear atualizações silenciosas, reinicialização, modo quiosque e controle de hora, registre este painel como proprietário do dispositivo via ADB (dispositivo restaurado de fábrica, sem contas, depuração USB ativada):</string>
+    <string name="hw_enroll_constraints">Ou escaneie o QR code de provisionamento no painel após uma restauração de fábrica (toque na tela de Boas-vindas do assistente de configuração 6×). O proprietário do dispositivo é opcional — o aplicativo funciona totalmente sem ele.</string>
+    <string name="hw_recheck">Verificar novamente</string>
+    <string name="settings_info_device">Dispositivo</string>
+    <string name="settings_exit_kiosk">Sair do modo quiosque</string>
+    <string name="settings_exit_kiosk_done">Modo quiosque desativado. Permanecerá desativado até ser reativado pelo painel.</string>
+    <string name="settings_exit">Sair do aplicativo</string>
+    <string name="settings_save">Salvar</string>
+    <string name="settings_exit_title">Sair do ScreenTinker?</string>
+    <string name="settings_exit_confirm">O aplicativo parará de exibir conteúdo. Você poderá reabri-lo mais tarde a partir do inicializador de aplicativos.</string>
+    <string name="settings_exit_yes">Sair</string>
+    <string name="settings_connection_failed">Não foi possível conectar ao servidor</string>
+    <string name="settings_connection_hint">Pressione VOLTAR duas vezes para abrir as configurações</string>
+
+    <!-- Permissões -->
+    <string name="settings_permissions">Permissões</string>
+    <string name="settings_perm_accessibility">Acessibilidade</string>
+    <string name="settings_perm_notifications">Notificações</string>
+    <string name="settings_perm_hint">Toque em \"Abrir\" para gerenciar as permissões nas configurações do sistema</string>
+    <string name="settings_perm_open">Abrir configurações</string>
+    <string name="settings_perm_done">Concluído</string>
+    <string name="settings_perm_manage">Gerenciar permissões</string>
+
+    <!-- Linhas de configuração na Android TV -->
+    <string name="setup_screen_unavailable_title">Não disponível nesta versão do Android</string>
+    <string name="setup_screen_unavailable">O aplicativo de Configurações deste dispositivo não possui uma tela para esta permissão (comum em TV boxes Android). Conceda-a através de um computador com depuração USB/rede:\n\n%1$s</string>
+    <string name="setup_screen_unavailable_plain">O aplicativo de Configurações deste dispositivo não possui uma tela para esta permissão (comum em TV boxes Android).</string>
+    <string name="device_blocked_status">Esta tela foi bloqueada no painel de controle</string>
+    <string name="device_unpaired_status">Esta tela foi desemparelhada — aguardando novo emparelhamento</string>
+
+    <!-- Compartilhamento de tela 3.0 (remote/ScreenShareOverlay.kt) -->
+    <string name="screen_share_connecting">Conectando a {name}…</string>
+    <string name="screen_share_shared_by">Compartilhado por {name}</string>
+    <string name="screen_share_guest">convidado</string>
+    <string name="screen_share_code_title">Compartilhe sua tela aqui</string>
+    <string name="screen_share_code_hint">Acesse {url} e digite</string>
+
+    <!-- Layout da Tela de Configuração -->
+    <string name="setup_title">Configuração do RemoteDisplay</string>
+    <string name="setup_subtitle">Habilite estas permissões para controle remoto total</string>
+    <string name="perm_accessibility_title">Serviço de Acessibilidade</string>
+    <string name="perm_accessibility_desc">Necessário para controle remoto (Início, Voltar, toque, gestos)</string>
+    <string name="perm_install_title">Instalar apps desconhecidos</string>
+    <string name="perm_install_desc">Atualizações OTA — apenas versões verificadas por assinatura são instaladas</string>
+    <string name="perm_notifications_title">Notificações</string>
+    <string name="perm_notifications_desc">Necessário para o serviço em segundo plano</string>
+    <string name="perm_boot_title">Iniciar ao ligar</string>
+    <string name="perm_boot_desc">Necessário para iniciar a exibição automaticamente ao ligar</string>
+    <string name="perm_battery_title">Atividade em segundo plano</string>
+    <string name="perm_battery_desc">Manter em execução e iniciar de forma confiável</string>
+    <string name="perm_overlay_title">Exibir sobre outros apps</string>
+    <string name="perm_overlay_desc">Permite que a tela inicie ao ligar o dispositivo (TV boxes)</string>
+    <string name="perm_write_settings_title">Configurações do sistema</string>
+    <string name="perm_write_settings_desc">Permite que o painel ajuste o brilho da tela e o tempo limite</string>
+    <string name="perm_location_title">Nome do Wi-Fi (opcional)</string>
+    <string name="perm_location_desc">O Android precisa de permissão de localização para mostrar o nome da rede. Nada mais utiliza essa permissão.</string>
+    <string name="perm_launcher_title">Inicializador padrão</string>
+    <string name="perm_launcher_desc">Defina este app como Início para manter a tela em primeiro plano (quiosque)</string>
+    <string name="status_off">DESLIGADO</string>
+    <string name="status_on">LIGADO</string>
+    <string name="btn_enable">Habilitar</string>
+    <string name="btn_manage">Gerenciar</string>
+    <string name="btn_set">Definir</string>
+    <string name="btn_continue">Continuar para Configuração</string>
+    <string name="btn_continue_anyway">Continuar mesmo assim</string>
+    <string name="skip_setup">Pular (recursos de controle remoto serão limitados)</string>
+
+    <!-- Layout da Tela de Provisionamento -->
+    <string name="digital_signage_player">Reprodutor de Sinalização Digital</string>
+    <string name="server_url">URL do Servidor</string>
+    <string name="btn_connect">Conectar</string>
+    <string name="pairing_code">Código de Emparelhamento</string>
+    <string name="pairing_code_hint">Digite este código no painel para emparelhar esta tela</string>
+
+    <!-- Layout da Tela de Acessibilidade do Proprietário -->
+    <string name="owner_a11y_title">Última etapa: habilite o controle remoto</string>
+    <string name="owner_a11y_desc">Este painel gerenciado precisa do serviço de acessibilidade do ScreenTinker para visualização e controle remoto. O Android exige que essa opção seja ativada manualmente — é o único passo que não podemos fazer por você.</string>
+    <string name="owner_a11y_status_off">●  Serviço de acessibilidade: DESLIGADO</string>
+    <string name="owner_a11y_status_on">●  Serviço de acessibilidade: LIGADO</string>
+    <string name="owner_a11y_step1_title">Permitir configurações restritas</string>
+    <string name="owner_a11y_step1_desc">Na página de informações do app, toque no menu ⋮ (no canto superior direito) → \"Permitir configurações restritas\".</string>
+    <string name="btn_app_info">Info do app</string>
+    <string name="owner_a11y_step2_title">Ativar o ScreenTinker</string>
+    <string name="owner_a11y_step2_desc">Em Acessibilidade, escolha ScreenTinker, ative a chave e confirme Permitir.</string>
+    <string name="btn_accessibility">Acessibilidade</string>
+    <string name="skip_for_now">Pular por enquanto</string>
+    <string name="btn_continue_plain">Continuar</string>
+    <string name="owner_a11y_footer">A reprodução funciona sem isso — ativa apenas a visualização e controle remoto.</string>
+    <string name="status_connecting">Conectando…</string>
+</resources>

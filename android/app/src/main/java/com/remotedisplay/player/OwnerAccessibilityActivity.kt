@@ -69,11 +69,11 @@ class OwnerAccessibilityActivity : AppCompatActivity() {
         // Reflect live state; the moment the service is on, move on automatically — the installer
         // flips the switch and comes back to a panel that's already advancing to its pairing code.
         if (isAccessibilityEnabled()) {
-            statusPill.text = "●  Accessibility service: ON"
+            statusPill.text = getString(R.string.owner_a11y_status_on)
             statusPill.setTextColor(0xFF22C55E.toInt())
             statusPill.postDelayed({ if (!isFinishing) proceedToNext() }, 700)
         } else {
-            statusPill.text = "●  Accessibility service: OFF"
+            statusPill.text = getString(R.string.owner_a11y_status_off)
             statusPill.setTextColor(0xFFEF4444.toInt())
         }
     }

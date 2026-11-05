@@ -195,7 +195,7 @@ class ServerConfig(context: Context) {
     // #312: non-secret identity is mirrored to BOTH stores so they cannot drift on the address.
     var serverUrl: String
         get() = prefs.getString("server_url", "") ?: ""
-        set(value) = editBoth { it.putString("server_url", value) }
+        set(value) = editBoth { it.putString("server_url", normalizeUrl(value)) }
 
     var deviceId: String
         get() = prefs.getString("device_id", "") ?: ""
@@ -341,10 +341,25 @@ class ServerConfig(context: Context) {
             .apply()
     }
 
-    private companion object {
+    companion object {
         // #312: the non-secret identity keys mirrored into both stores. The token is deliberately
         // NOT here — it stays in the winning store only. In a companion so it is ready before any
         // instance init block (reconcileIdentity runs from init).
         val MIRRORED_STRING_KEYS = listOf("server_url", "device_id")
+
+        fun normalizeUrl(raw: String): String {
+            var url = raw.trim().trimEnd('/')
+            if (url.isEmpty()) return ""
+            if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
+                url = "http://$url"
+            }
+            return try {
+                val uri = java.net.URI.create(url)
+                val port = if (uri.port != -1) ":${uri.port}" else ""
+                "${uri.scheme}://${uri.host}$port"
+            } catch (_: Exception) {
+                url.replace(Regex("/(player|app)/?$"), "").trimEnd('/')
+            }
+        }
     }
 }

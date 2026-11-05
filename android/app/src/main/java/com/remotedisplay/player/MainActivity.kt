@@ -2115,11 +2115,15 @@ class MainActivity : AppCompatActivity() {
 
         // #161: live privilege tier for the Hardware control entry.
         val tier = try { com.remotedisplay.player.admin.STPolicy(this).tier() } catch (_: Throwable) { 0 }
+        val currentLang = com.remotedisplay.player.util.LanguageManager.getLanguageDisplayName(
+            this, com.remotedisplay.player.util.LanguageManager.getSelectedLanguageCode(this)
+        )
         val items = arrayOf(
             "${getString(R.string.settings_change_server)}\n  ${if (serverUrl.isEmpty()) "—" else serverUrl}",
             getString(R.string.settings_reconfigure),
             getString(R.string.settings_permissions),
             "${getString(R.string.settings_hardware_control)}\n  ${hwTierShort(tier)}",
+            "${getString(R.string.settings_language)}\n  $currentLang",
             "${getString(R.string.settings_device_info)}\n  ${getString(R.string.settings_info_device)}: ${config.deviceId.take(8)}…  |  v$version  |  ${if (connected) "●" else "○"}",
             getString(R.string.settings_exit)
         )
@@ -2145,8 +2149,9 @@ class MainActivity : AppCompatActivity() {
                     }
                     2 -> showPermissionsDialog()
                     3 -> showHardwareControlDialog()
-                    5 -> showExitDialog()
-                    // 4 = info (read-only, dismiss)
+                    4 -> com.remotedisplay.player.util.LanguageManager.showLanguageDialog(this) { recreate() }
+                    6 -> showExitDialog()
+                    // 5 = info (read-only, dismiss)
                 }
             }
             .setOnCancelListener { /* dismissed, back to kiosk */ }
@@ -2303,7 +2308,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.settings_change_server))
             .setView(container)
             .setPositiveButton(getString(R.string.settings_save)) { _, _ ->
-                val url = input.text.toString().trim().trimEnd('/')
+                val url = com.remotedisplay.player.data.ServerConfig.normalizeUrl(input.text.toString())
                 if (url.isNotEmpty() && url != currentUrl) {
                     config.clearDeviceCredentials()
                     navigateToProvisioning(url)

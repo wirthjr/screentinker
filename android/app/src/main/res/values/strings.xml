@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Arco Indoor</string>
     <string name="accessibility_description">RemoteDisplay uses accessibility to enable remote power controls and system navigation.</string>
     <string name="device_admin_description">Lets ScreenTinker run as an unattended kiosk: silent updates, scheduled reboot, lock-task, and time/display control. Optional — the app works without it.</string>
@@ -15,6 +15,18 @@
     <string name="settings_reconfigure">Reconfigure device (re-pair)</string>
     <string name="settings_device_info">Device info</string>
     <string name="settings_hardware_control">Hardware control</string>
+    <string name="settings_language">Language / Idioma</string>
+    <string name="settings_language_title">Select Language / Selecione o Idioma</string>
+
+    <!-- Supported Languages -->
+    <string name="lang_system_default">System Default / Padrão do Sistema</string>
+    <string name="lang_pt_br">Português (Brasil)</string>
+    <string name="lang_en">English</string>
+    <string name="lang_es">Español</string>
+    <string name="lang_de">Deutsch</string>
+    <string name="lang_fr">Français</string>
+    <string name="lang_hi">हिन्दी</string>
+
     <string name="hw_tier_owner">Tier 2 — device owner (full control)</string>
     <string name="hw_tier_admin">Tier 1 — device admin (screen lock only)</string>
     <string name="hw_tier_none">Tier 0 — standard (no system control)</string>
@@ -43,18 +55,71 @@
     <string name="settings_perm_open">Open settings</string>
     <string name="settings_perm_done">Done</string>
     <string name="settings_perm_manage">Manage permissions</string>
-    <!-- Setup rows on Android TV: the Settings screen for a permission may not exist on this build
-         (SetupActivity.openFirstAvailable). Say so, and give the adb command that grants it. -->
+
+    <!-- Setup rows on Android TV -->
     <string name="setup_screen_unavailable_title">Not available on this Android build</string>
     <string name="setup_screen_unavailable">This device\'s Settings app has no screen for this permission (common on Android TV boxes). Grant it from a computer with USB/network debugging:\n\n%1$s</string>
     <string name="setup_screen_unavailable_plain">This device\'s Settings app has no screen for this permission (common on Android TV boxes).</string>
     <string name="device_blocked_status">This screen has been blocked in the dashboard</string>
     <string name="device_unpaired_status">This screen was unpaired — waiting to be re-paired</string>
 
-    <!-- 3.0 screen share (remote/ScreenShareOverlay.kt). {name} and {url} are filled in by the player. -->
+    <!-- 3.0 screen share (remote/ScreenShareOverlay.kt) -->
     <string name="screen_share_connecting">Connecting to {name}…</string>
     <string name="screen_share_shared_by">Shared by {name}</string>
     <string name="screen_share_guest">guest</string>
     <string name="screen_share_code_title">Share your screen here</string>
     <string name="screen_share_code_hint">Go to {url} and enter</string>
+
+    <!-- Setup Activity Layout -->
+    <string name="setup_title">RemoteDisplay Setup</string>
+    <string name="setup_subtitle">Enable these permissions for full remote control</string>
+    <string name="perm_accessibility_title">Accessibility Service</string>
+    <string name="perm_accessibility_desc">Required for remote control (Home, Back, touch, gestures)</string>
+    <string name="perm_install_title">Install Unknown Apps</string>
+    <string name="perm_install_desc">OTA updates — only our signature-verified builds install</string>
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_desc">Required for background service</string>
+    <string name="perm_boot_title">Launch on Boot</string>
+    <string name="perm_boot_desc">Required to auto-start the display after power-on</string>
+    <string name="perm_battery_title">Background Activity</string>
+    <string name="perm_battery_desc">Keep running and auto-start reliably</string>
+    <string name="perm_overlay_title">Display Over Apps</string>
+    <string name="perm_overlay_desc">Lets the display launch itself on boot (TV boxes)</string>
+    <string name="perm_write_settings_title">System Settings</string>
+    <string name="perm_write_settings_desc">Lets the dashboard set screen brightness + sleep timeout</string>
+    <string name="perm_location_title">Wi-Fi Name (optional)</string>
+    <string name="perm_location_desc">Android needs location permission to reveal the network name. Nothing else uses it.</string>
+    <string name="perm_launcher_title">Default Launcher</string>
+    <string name="perm_launcher_desc">Set this app as Home so the display stays foreground (kiosk)</string>
+    <string name="status_off">OFF</string>
+    <string name="status_on">ON</string>
+    <string name="btn_enable">Enable</string>
+    <string name="btn_manage">Manage</string>
+    <string name="btn_set">Set</string>
+    <string name="btn_continue">Continue to Setup</string>
+    <string name="btn_continue_anyway">Continue Anyway</string>
+    <string name="skip_setup">Skip (remote control features will be limited)</string>
+
+    <!-- Provisioning Activity Layout -->
+    <string name="digital_signage_player">Digital Signage Player</string>
+    <string name="server_url">Server URL</string>
+    <string name="btn_connect">Connect</string>
+    <string name="pairing_code">Pairing Code</string>
+    <string name="pairing_code_hint">Enter this code in the dashboard to pair this display</string>
+
+    <!-- Owner Accessibility Activity Layout -->
+    <string name="owner_a11y_title">One last step: enable remote control</string>
+    <string name="owner_a11y_desc">This managed panel needs ScreenTinker’s accessibility service so you can view and control it remotely. Android requires this one switch to be turned on by hand — it’s the only step we can’t do for you.</string>
+    <string name="owner_a11y_status_off">●  Accessibility service: OFF</string>
+    <string name="owner_a11y_status_on">●  Accessibility service: ON</string>
+    <string name="owner_a11y_step1_title">Allow restricted settings</string>
+    <string name="owner_a11y_step1_desc">On the app’s info page, tap the ⋮ menu (top-right) → “Allow restricted settings”.</string>
+    <string name="btn_app_info">App info</string>
+    <string name="owner_a11y_step2_title">Turn ScreenTinker on</string>
+    <string name="owner_a11y_step2_desc">In Accessibility, pick ScreenTinker, flip the switch On, and confirm Allow.</string>
+    <string name="btn_accessibility">Accessibility</string>
+    <string name="skip_for_now">Skip for now</string>
+    <string name="btn_continue_plain">Continue</string>
+    <string name="owner_a11y_footer">Playback works without this — it only enables remote view &amp; control.</string>
+    <string name="status_connecting">Connecting…</string>
 </resources>
