@@ -41,6 +41,7 @@ const incidentClassify = require('../lib/incident-classify'); // offline-cause l
 const pluginHooks = require('../lib/plugins/hooks');
 const { playerBrandForDevice } = require('../lib/branding'); // #674: device:paired carries the workspace brand
 const playerTermination = require('../lib/mesh/player-termination'); // scale-out C2: players on a replica
+const audience = require('../lib/audience');
 
 // Debounce window for marking a device offline on socket disconnect. Brief
 // flap (Wi-Fi blip, Engine.IO ping miss, server-side eviction-then-reconnect)
@@ -727,7 +728,7 @@ function asMirrorPayload(p, mirrorId, sourceId) {
   p.trigger_config = null;
   p.local_api = null;
   delete p.site_cache;
-  try { p.audience = require('../lib/audience').payloadConfig(mirrorId); } catch (e) { p.audience = null; }
+  try { p.audience = audience.payloadConfig(mirrorId); } catch (e) { p.audience = null; }
   p.mirror_of = sourceId;
   return p;
 }
@@ -1236,7 +1237,7 @@ function buildPlaylistPayloadUnchecked(deviceId, opts = {}) {
    * off never restarts playback (#234). Rides EVERY payload, and null means OFF — so a screen that
    * missed the change still stops counting on its next payload.
    */
-  assembled.audience = require('../lib/audience').payloadConfig(deviceId);
+  assembled.audience = audience.payloadConfig(deviceId);
   /*
    * 3.0 CAMPAIGNS (lib/campaign.js, docs/layouts-and-campaigns.md): a player that declares
    * layout.campaign also gets the structure — whole layouts switching with full-screen items — while
@@ -2133,7 +2134,7 @@ const EVENT_APPLIERS = Object.freeze({
    */
   'audience'(deviceId, data, ctx) {
     let out = { ids: [], written: 0 };
-    try { const r = require('../lib/audience').ingest(deviceId, data); out = { ids: r.ids, written: r.written }; }
+    try { const r = audience.ingest(deviceId, data); out = { ids: r.ids, written: r.written }; }
     catch (e) { console.warn(`[audience] ingest from ${deviceId} failed: ${e.message}`); }
     try { ctx.reply('device:audience-ack', out); } catch (_) { /* best effort */ }
   },

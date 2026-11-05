@@ -11,6 +11,7 @@ const { requirePlatformAdmin, requireAdmin } = require('../middleware/auth');
 const { logActivity, getClientIp } = require('../services/activity');
 const { deleteWorkspaceCascade, deleteOrgCascade, releaseWorkspaceMember } = require('../lib/user-deletion');
 const { platformDefaultRow, HARDCODED_BRANDING, PLATFORM_DEFAULT_ID } = require('../lib/branding');
+const promotions = require('../lib/promotions');
 
 // Admin-provisioned user creation (#10). Operates on a target workspace
 // specified in the body, NOT the caller's active workspace - so this router is
@@ -811,7 +812,6 @@ router.post('/plans', requirePlatformAdmin, async (req, res) => {
 // ─── Sales / limited-time discounts (lib/promotions.js) ─────────────────────────
 // Platform admin only: a sale changes what every customer is charged.
 router.get('/promotions', requirePlatformAdmin, (req, res) => {
-  const promotions = require('../lib/promotions');
   const cur = promotions.current();
   res.json({
     promotions: promotions.list(),
@@ -823,7 +823,6 @@ router.get('/promotions', requirePlatformAdmin, (req, res) => {
 });
 
 router.post('/promotions', requirePlatformAdmin, async (req, res) => {
-  const promotions = require('../lib/promotions');
   try {
     const promo = await promotions.create(req.body, require('../lib/stripe-client').get(), req.user.id);
     res.status(201).json({ promotion: promo });
@@ -833,7 +832,6 @@ router.post('/promotions', requirePlatformAdmin, async (req, res) => {
 });
 
 router.post('/promotions/:id/end', requirePlatformAdmin, async (req, res) => {
-  const promotions = require('../lib/promotions');
   try {
     const out = await promotions.end(req.params.id, require('../lib/stripe-client').get());
     res.json({ promotion: out.promo, stripe_warning: out.stripeWarning });
@@ -843,7 +841,6 @@ router.post('/promotions/:id/end', requirePlatformAdmin, async (req, res) => {
 });
 
 router.put('/promotions/:id', requirePlatformAdmin, async (req, res) => {
-  const promotions = require('../lib/promotions');
   try {
     const out = await promotions.update(req.params.id, req.body, require('../lib/stripe-client').get());
     res.json({ promotion: out.promo, stripe_warning: out.stripeWarning });
@@ -853,7 +850,6 @@ router.put('/promotions/:id', requirePlatformAdmin, async (req, res) => {
 });
 
 router.delete('/promotions/:id', requirePlatformAdmin, async (req, res) => {
-  const promotions = require('../lib/promotions');
   try {
     const out = await promotions.remove(req.params.id, require('../lib/stripe-client').get());
     res.json({ ok: true, stripe_warning: out.stripeWarning });

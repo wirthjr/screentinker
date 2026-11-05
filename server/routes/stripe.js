@@ -7,6 +7,7 @@ const subscriptions = require('../middleware/subscription');
 const config = require('../config');
 const { periodEndOf, subscriptionIdOf, invoicePriceIdOf } = require('../lib/stripe-fields');
 const { trimTrailing } = require('../lib/trim-trailing');
+const promotions = require('../lib/promotions');
 
 const appUrl = process.env.APP_URL || '';
 
@@ -87,7 +88,7 @@ router.post('/checkout', requireAuth, async (req, res) => {
 
     // A running sale that covers this plan and interval (lib/promotions.js). The price the pricing
     // page showed is only true if checkout charges it, so its coupon goes on the session here.
-    const promo = require('../lib/promotions').activeFor(plan.id, interval === 'yearly' ? 'yearly' : 'monthly');
+    const promo = promotions.activeFor(plan.id, interval === 'yearly' ? 'yearly' : 'monthly');
     const discount = promo && promo.stripe_coupon_id
       // ⚠️ Stripe refuses `discounts` together with `allow_promotion_codes`, so during a sale the
       // "Add promotion code" field is not offered: the sale price is already applied.

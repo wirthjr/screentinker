@@ -4,6 +4,7 @@ const { db } = require('../db/database');
 const { requireAuth, requireSuperAdmin } = require('../middleware/auth');
 const { getUserPlan, getUserDeviceCount, getUserStorageMB } = require('../middleware/subscription');
 const config = require('../config');
+const promotions = require('../lib/promotions');
 
 // Get all plans
 router.get('/plans', (req, res) => {
@@ -14,7 +15,6 @@ router.get('/plans', (req, res) => {
 // The sale running now, if any (lib/promotions.js). Public: the pricing page shows it to visitors.
 // Only the public fields — no internal name, no Stripe ids. Cached briefly at the edge.
 router.get('/promotion', (req, res) => {
-  const promotions = require('../lib/promotions');
   res.set('Cache-Control', 'public, max-age=60');
   res.json({ promotion: promotions.publicCurrent() });
 });
