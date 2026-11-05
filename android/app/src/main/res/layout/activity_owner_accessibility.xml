@@ -17,14 +17,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:paddingHorizontal="28dp"
-            android:paddingVertical="24dp">
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="20dp">
 
             <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@drawable/ic_remote_view"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="8dp"
                 android:contentDescription="Remote control" />
 
             <TextView
@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/owner_a11y_title"
                 android:textColor="#F1F5F9"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 android:gravity="center" />
 
@@ -42,50 +42,52 @@
                 android:layout_marginTop="6dp"
                 android:maxWidth="560dp"
                 android:gravity="center"
-                android:lineSpacingMultiplier="1.25"
+                android:lineSpacingMultiplier="1.2"
                 android:text="@string/owner_a11y_desc"
                 android:textColor="#94A3B8"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/a11yStatusPill"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
+                android:layout_marginTop="12dp"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="6dp"
                 android:background="@drawable/pill_bg"
                 android:text="@string/owner_a11y_status_off"
                 android:textColor="#EF4444"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <!-- Step 1 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
+                android:layout_marginTop="16dp"
                 android:maxWidth="620dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:padding="16dp"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="12dp"
                 android:gravity="center_vertical">
 
                 <TextView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:background="@drawable/badge_circle"
                     android:gravity="center"
                     android:text="1"
                     android:textColor="#93C5FD"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginHorizontal="14dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
                     android:orientation="vertical">
 
                     <TextView
@@ -93,28 +95,28 @@
                         android:layout_height="wrap_content"
                         android:text="@string/owner_a11y_step1_title"
                         android:textColor="#F1F5F9"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:lineSpacingMultiplier="1.2"
+                        android:lineSpacingMultiplier="1.1"
                         android:text="@string/owner_a11y_step1_desc"
                         android:textColor="#94A3B8"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <!-- visual cue: the ⋮ menu they need to tap -->
                 <FrameLayout
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:layout_marginEnd="12dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="8dp"
                     android:background="@drawable/pill_bg">
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_dots_vertical"
                         android:contentDescription="Menu" />
@@ -126,12 +128,12 @@
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="8dp"
                     android:background="@drawable/button_primary"
                     android:text="@string/btn_app_info"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textAllCaps="false" />
             </LinearLayout>
 
@@ -139,28 +141,30 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:maxWidth="620dp"
                 android:orientation="horizontal"
                 android:background="@drawable/card_bg"
-                android:padding="16dp"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="12dp"
                 android:gravity="center_vertical">
 
                 <TextView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:background="@drawable/badge_circle"
                     android:gravity="center"
                     android:text="2"
                     android:textColor="#93C5FD"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginHorizontal="14dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
                     android:orientation="vertical">
 
                     <TextView
@@ -168,24 +172,24 @@
                         android:layout_height="wrap_content"
                         android:text="@string/owner_a11y_step2_title"
                         android:textColor="#F1F5F9"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:lineSpacingMultiplier="1.2"
+                        android:lineSpacingMultiplier="1.1"
                         android:text="@string/owner_a11y_step2_desc"
                         android:textColor="#94A3B8"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <!-- visual cue: a toggle in the ON position (non-interactive) -->
                 <Switch
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginEnd="8dp"
                     android:checked="true"
                     android:clickable="false"
                     android:focusable="false"
@@ -198,12 +202,12 @@
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="8dp"
                     android:background="@drawable/button_primary"
                     android:text="@string/btn_accessibility"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textAllCaps="false" />
             </LinearLayout>
 
@@ -211,7 +215,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
+                android:layout_marginTop="18dp"
                 android:maxWidth="620dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
@@ -223,8 +227,8 @@
                     android:layout_weight="1"
                     android:text="@string/skip_for_now"
                     android:textColor="#64748B"
-                    android:textSize="13sp"
-                    android:paddingVertical="10dp" />
+                    android:textSize="12sp"
+                    android:paddingVertical="8dp" />
 
                 <Button
                     android:id="@+id/continueBtn"
@@ -232,12 +236,12 @@
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
-                    android:paddingHorizontal="24dp"
-                    android:paddingVertical="12dp"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="10dp"
                     android:background="@drawable/button_primary"
                     android:text="@string/btn_continue_plain"
                     android:textColor="#FFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:textAllCaps="false" />
             </LinearLayout>
@@ -245,7 +249,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="12dp"
                 android:maxWidth="620dp"
                 android:gravity="center"
                 android:text="@string/owner_a11y_footer"

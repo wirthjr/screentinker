@@ -2087,7 +2087,7 @@ class MainActivity : AppCompatActivity() {
         }
         val container = FrameLayout(this).apply {
             val pad = (16 * resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(pad, pad, pad, pad / 2)
             addView(input)
         }
 
@@ -2300,7 +2300,7 @@ class MainActivity : AppCompatActivity() {
         }
         val container = FrameLayout(this).apply {
             val pad = (16 * resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(pad, pad, pad, pad / 2)
             addView(input)
         }
 

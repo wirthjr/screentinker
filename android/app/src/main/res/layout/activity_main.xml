@@ -41,6 +41,8 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="24dp"
         android:background="#000000"
         android:visibility="visible">
 
@@ -67,7 +69,9 @@
             android:layout_height="wrap_content"
             android:text="Connecting..."
             android:textColor="#94A3B8"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:gravity="center"
+            android:textAlignment="center" />
 
         <ProgressBar
             android:layout_width="48dp"

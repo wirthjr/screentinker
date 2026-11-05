@@ -67,9 +67,11 @@ object PlayToEnd {
         if (token == null) return ""
         return "<script src=\"https://www.youtube.com/iframe_api\"></script><script>" +
             "function onYouTubeIframeAPIReady(){try{new YT.Player('st-yt',{events:{" +
-            "onReady:function(e){try{var d=e.target.getDuration();if(window.$BRIDGE)$BRIDGE.duration($token,d||0);}catch(x){}}," +
+            "onReady:function(e){try{e.target.playVideo();var d=e.target.getDuration();if(window.$BRIDGE)$BRIDGE.duration($token,d||0);}catch(x){}}," +
             "onStateChange:function(e){try{if(e.data===1){var d=e.target.getDuration();if(d>0&&window.$BRIDGE)$BRIDGE.duration($token,d);}" +
-            "if(e.data===0&&window.$BRIDGE)$BRIDGE.ended($token);}catch(x){}}" +
+            "if(e.data===0&&window.$BRIDGE)$BRIDGE.ended($token);" +
+            "if(e.data===3||e.data===2){setTimeout(function(){try{if(e.target.getPlayerState()===3||e.target.getPlayerState()===2)e.target.playVideo();}catch(x){}},3500);}" +
+            "}catch(x){}}" +
             "}});}catch(x){}}</script>"
     }
 }

@@ -18,7 +18,7 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-const CACHE_NAME = "rd-player-v33";
+const CACHE_NAME = "rd-player-v34";
 const CONTENT_CACHE = "rd-content-v1";
 const SITE_CACHE_STORE = "rd-site-cache-v1";
 const SITE_CACHE_KEY = "/__st_site_cache__";

@@ -426,7 +426,7 @@ function showPlaylistPreview(playlist) {
                72vh rather than 78: the modal caps at 92vh with overflow:hidden, and the header plus
                the transport row cost ~12vh — at 78 the skip buttons fell off the bottom. -->
           <div id="pvpStage" style="height:72vh;max-width:92vw;aspect-ratio:${aspect()};background:#000">
-            <iframe id="pvpFrame" style="border:0;background:#000" src="${frameSrc()}" allow="autoplay; encrypted-media; fullscreen"></iframe>
+            <iframe id="pvpFrame" style="border:0;background:#000" src="${frameSrc()}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
           </div>
         </div>
         <div style="display:flex;justify-content:center;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--border)">

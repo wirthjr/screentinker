@@ -43,7 +43,14 @@ object WebViewSupport {
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // Strip '; wv' and 'Version/4.0 ' so YouTube doesn't detect an embedded WebView
+            // and throttle/freeze video chunk downloads after the initial buffer.
+            val ua = userAgentString
+            if (ua != null) {
+                userAgentString = ua.replace("; wv", "").replace(Regex("""Version\/4\.0\s*"""), "")
+            }
         }
+        webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
         webView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         // Interactive widgets (e.g. directory-search) need the WebView to take
         // touch focus so the search field accepts a tap/cursor inside the kiosk
@@ -242,18 +249,31 @@ object WebViewSupport {
         // page is exactly what it was. origin is what the IFrame API checks postMessage against.
         val playToEnd = bridgeToken != null
         val loop = com.remotedisplay.player.player.PlayToEnd.loopParams(id, playToEnd)
-        val origin = if (playToEnd) "&origin=" + java.net.URLEncoder.encode(EMBED_BASE, "UTF-8") else ""
+        val origin = "&origin=" + java.net.URLEncoder.encode(EMBED_BASE, "UTF-8")
         val src = "$YT_BASE/embed/$id?autoplay=1&mute=$mute&controls=0&rel=0&modestbranding=1$loop&playsinline=1&enablejsapi=1$origin"
         // Vertical: center a 9:16 iframe so it fills a portrait panel and pillarboxes
         // cleanly on landscape, instead of a 100%x100% landscape frame.
         val css = if (vertical)
-            "html,body{margin:0;padding:0;height:100%;background:transparent;overflow:hidden;display:flex;align-items:center;justify-content:center}" +
+            "html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center}" +
             "iframe{display:block;height:100%;aspect-ratio:9/16;max-width:100%;border:0}"
         else
-            "html,body{margin:0;padding:0;height:100%;background:transparent;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0}"
+            "html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0}"
         return "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+            "<meta name=\"referrer\" content=\"strict-origin-when-cross-origin\">" +
             "<style>$css</style>" +
-            "</head><body><iframe" + (if (playToEnd) " id=\"st-yt\"" else "") + " src=\"$src\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe>" +
-            com.remotedisplay.player.player.PlayToEnd.bridgeScript(bridgeToken) + "</body></html>"
+            "</head><body><iframe id=\"st-yt\" src=\"$src\" referrerpolicy=\"strict-origin-when-cross-origin\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" allowfullscreen></iframe>" +
+            (if (playToEnd) com.remotedisplay.player.player.PlayToEnd.bridgeScript(bridgeToken) else youtubeLoopWatchdog(muted)) + "</body></html>"
+    }
+
+    /** Watchdog script for looping YouTube embeds: auto-starts, recovers buffering/pause stalls, and applies unmute when unmuted. */
+    internal fun youtubeLoopWatchdog(muted: Boolean): String {
+        val unmuteJs = if (!muted) "try{e.target.unMute();e.target.setVolume(100);}catch(_){}" else ""
+        return "<script src=\"https://www.youtube.com/iframe_api\"></script><script>" +
+            "function onYouTubeIframeAPIReady(){try{new YT.Player('st-yt',{events:{" +
+            "onReady:function(e){try{e.target.playVideo();$unmuteJs}catch(x){}}," +
+            "onStateChange:function(e){try{" +
+            "if(e.data===3||e.data===2||e.data===5){setTimeout(function(){try{var s=e.target.getPlayerState();if(s===3||s===2||s===5){e.target.playVideo();$unmuteJs}}catch(x){}},1500);}" +
+            "}catch(x){}}" +
+            "}});}catch(x){}}</script>"
     }
 }

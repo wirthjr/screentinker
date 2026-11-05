@@ -485,7 +485,13 @@ class WallZoneRenderer(
                 else -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
         }
-        val p = ExoPlayer.Builder(context).build()
+        val p = ExoPlayer.Builder(context).build().apply {
+            if (!audible) {
+                trackSelectionParameters = trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+                    .build()
+            }
+        }
         val m = Media(pv, player = p)
         val live = isLive(mime)
         m.alignable = !live && !frozenAtEnd

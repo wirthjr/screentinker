@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal|top"
         android:orientation="vertical"
-        android:paddingHorizontal="32dp"
+        android:paddingHorizontal="20dp"
         android:paddingTop="24dp"
         android:paddingBottom="24dp"
         android:keepScreenOn="true">
@@ -55,7 +55,7 @@
         <!-- Server URL Section (hidden once paired so the code has room) -->
         <LinearLayout
             android:id="@+id/serverSection"
-            android:layout_width="400dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_marginBottom="24dp">
@@ -85,7 +85,7 @@
 
         <Button
             android:id="@+id/connectBtn"
-            android:layout_width="400dp"
+            android:layout_width="match_parent"
             android:layout_height="48dp"
             android:text="@string/btn_connect"
             android:textColor="#FFFFFF"
@@ -121,7 +121,7 @@
             <!-- FIXED-height box: autosize fits the text inside the bounded box and
                  gravity center vertically centers it, so the digits are never
                  clipped (the earlier wrap_content height clipped the glyph bottoms).
-                 24-64sp fills the width on phones/TVs/sticks. -->
+                 20-56sp fills the width on phones/TVs/sticks without overflow. -->
             <TextView
                 android:id="@+id/pairingCodeText"
                 android:layout_width="match_parent"
@@ -130,12 +130,12 @@
                 android:textColor="#3B82F6"
                 android:textStyle="bold"
                 android:fontFamily="monospace"
-                android:letterSpacing="0.3"
+                android:letterSpacing="0.15"
                 android:maxLines="1"
                 android:gravity="center"
                 app:autoSizeTextType="uniform"
-                app:autoSizeMinTextSize="24sp"
-                app:autoSizeMaxTextSize="64sp"
+                app:autoSizeMinTextSize="20sp"
+                app:autoSizeMaxTextSize="56sp"
                 app:autoSizeStepGranularity="2sp" />
 
             <TextView

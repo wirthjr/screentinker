@@ -190,6 +190,7 @@ app.use(helmet({
   // The dashboard policy, on every response; the middleware below strips it from the render paths
   // that need inline script and set their own (stripped rather than never set, so a new route is
   // covered by default instead of exempt by default).
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   contentSecurityPolicy: DASHBOARD_CSP,
   crossOriginEmbedderPolicy: false,    // allow loading external widget content
   hsts: { maxAge: 31536000, includeSubDomains: true },
@@ -203,9 +204,14 @@ app.use(helmet({
 app.use((req, res, next) => {
   const exempt = () => { res.removeHeader('Content-Security-Policy'); return next(); };
   if (req.path === '/' || req.path === '/landing.html') return exempt();
-  if (req.path.startsWith('/player')) return exempt();
-  if (req.path.startsWith('/view/')) return exempt(); // view-only display page: the web player (routes/view.js)
-  if (req.path.startsWith('/listen/')) return exempt(); // visitor audio-guide page, inline JS like the player (routes/view.js)
+  if (req.path.startsWith('/player') || req.path.startsWith('/view/') || req.path.startsWith('/listen/')) {
+    res.removeHeader('Content-Security-Policy');
+    // Ensure YouTube embed & CDN (googlevideo.com) receive valid referer origin and postMessage channels
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return next();
+  }
   if (req.path === '/docs') return exempt(); // Redoc API reference needs a relaxed CSP
   if (req.path.startsWith('/api/widgets/') && req.path.endsWith('/render')) return exempt();
   if (req.path.startsWith('/api/widgets/') && req.path.endsWith('/data.json')) return exempt();

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <!--
     Player debug error trap. MUST stay first inside <head> after the two
     mandatory <meta> tags (charset must come first per HTML spec). Runs
@@ -2273,6 +2274,13 @@ function applyMute(item) {
   const want = window.MediaMute ? window.MediaMute.resolveMuted(muteState(activeMuteItem)) : true;
   document.querySelectorAll("video, audio").forEach((el) => {
     if (isOverlayMedia(el)) return;
+    if (el.__stZoneNonPrimary) {
+      try {
+        el.muted = true;
+      } catch (e) {
+      }
+      return;
+    }
     try {
       el.muted = want || baseAudioSuppressed;
     } catch (e) {
@@ -2429,8 +2437,8 @@ function autoplayAudioAllowed(timeoutMs) {
   });
 }
 function tryUnmuteLeader() {
-  const video = document.querySelector("#playerContainer video");
-  if (!video) return false;
+  const video = document.querySelector("#playerContainer > video, #playerContainer > div > video");
+  if (!video || video.__stZoneNonPrimary) return false;
   if (baseAudioSuppressed) return false;
   if (!video.muted) return true;
   const t = video.currentTime;
@@ -2756,6 +2764,7 @@ function unlockAudio() {
   if (isWallFollower()) return;
   document.querySelectorAll("video").forEach((v) => {
     if (baseAudioSuppressed && !isOverlayMedia(v)) return;
+    if (v.__stZoneNonPrimary) return;
     v.muted = false;
   });
   try {
@@ -5777,7 +5786,7 @@ function createYoutubeEmbed(src, item, container, opts) {
     const fire = () => {
       if (!alive()) return;
       console.log("YouTube safety net fired for:", item.filename);
-      done();
+      if (done) done();
     };
     if (zoneMode) {
       clearTimeout(container.__stYtSafety);
@@ -5813,22 +5822,34 @@ function createYoutubeEmbed(src, item, container, opts) {
   container.appendChild(mountEl);
   if (window.MediaMute ? window.MediaMute.shouldOfferUnmute(muteState(item)) : !userHasInteracted) {
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0;z-index:10;cursor:pointer;display:flex;align-items:end;justify-content:center;padding-bottom:40px;";
-    overlay.innerHTML = '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:10px 24px;border-radius:8px;font:14px sans-serif;pointer-events:none">Click to unmute</div>';
-    overlay.onclick = (e) => {
+    overlay.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0;z-index:10;pointer-events:none;display:flex;align-items:end;justify-content:center;padding-bottom:40px;";
+    const unMuteBtn = document.createElement("div");
+    unMuteBtn.style.cssText = "background:rgba(0,0,0,0.7);color:#fff;padding:10px 24px;border-radius:8px;font:14px sans-serif;cursor:pointer;pointer-events:auto;";
+    unMuteBtn.textContent = "Click to unmute";
+    unMuteBtn.onclick = (e) => {
       e.stopPropagation();
       userHasInteracted = true;
       unlockAudio();
+      if (activeYtPlayer && typeof activeYtPlayer.unMute === "function") {
+        try {
+          activeYtPlayer.unMute();
+          activeYtPlayer.setVolume(100);
+          activeYtPlayer.playVideo();
+        } catch (err) {
+        }
+      }
       applyMute(item);
       console.log("Unmuted YouTube player via overlay");
       overlay.remove();
     };
+    overlay.appendChild(unMuteBtn);
     container.appendChild(overlay);
   }
   loadYoutubeApi(() => {
     if (!alive()) return;
     const shouldLoop = zoneMode ? !!opts.loop : playlist.length <= 1;
     let playStartTime = 0;
+    let bufferRecoveryTimer = null;
     activeYtPlayer = new YT.Player(playerDiv.id, {
       videoId,
       width: "100%",
@@ -5844,17 +5865,22 @@ function createYoutubeEmbed(src, item, container, opts) {
         modestbranding: 1,
         loop: shouldLoop ? 1 : 0,
         playlist: shouldLoop ? videoId : void 0,
+        playsinline: 1,
         enablejsapi: 1,
-        origin: window.location.origin,
-        // #217: cap quality at 720p for items flagged "unstable connection" so weak
-        // WiFi doesn't stall on an auto-selected 1080p+ stream. vq is a hint the player
-        // may still override, so we also call setPlaybackQuality in onReady below.
-        vq: item.unstable_connection ? "hd720" : void 0
+        origin: window.location.origin
       },
       events: {
         onReady: (event) => {
           if (!alive()) return;
           console.log("YouTube player ready:", item.filename);
+          try {
+            const iframe = event.target.getIframe();
+            if (iframe) {
+              iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+              iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+            }
+          } catch (_) {
+          }
           event.target.playVideo();
           if (applyMuteWanted(item)) {
             event.target.mute();
@@ -5871,12 +5897,6 @@ function createYoutubeEmbed(src, item, container, opts) {
             if (duration > 0) setSafety((duration + 3) * 1e3);
             else if (item.play_to_end) setSafety(Math.max(1, Number(item.duration_sec) || 10) * 1e3);
           }
-          if (item.unstable_connection) {
-            try {
-              event.target.setPlaybackQuality("hd720");
-            } catch (e) {
-            }
-          }
           if (item.captions_enabled) {
             try {
               event.target.loadModule("captions");
@@ -5891,6 +5911,10 @@ function createYoutubeEmbed(src, item, container, opts) {
         onError: (event) => {
           if (!alive()) return;
           clearSafety();
+          if (bufferRecoveryTimer) {
+            clearTimeout(bufferRecoveryTimer);
+            bufferRecoveryTimer = null;
+          }
           console.error("YouTube error", event.data, "for:", item.filename);
           if (zoneMode) {
             if (done) setTimeout(() => {
@@ -5903,13 +5927,58 @@ function createYoutubeEmbed(src, item, container, opts) {
         },
         onAutoplayBlocked: () => {
           if (!alive()) return;
-          console.warn("YouTube autoplay blocked:", item.filename);
+          console.warn("YouTube autoplay blocked \u2014 muting and retrying play:", item.filename);
+          try {
+            if (activeYtPlayer) {
+              activeYtPlayer.mute();
+              activeYtPlayer.playVideo();
+            }
+          } catch (_) {
+          }
         },
         onStateChange: (event) => {
           if (!alive()) return;
-          if (event.data === 1) playStartTime = Date.now();
+          if (event.data === 1) {
+            playStartTime = Date.now();
+            if (bufferRecoveryTimer) {
+              clearTimeout(bufferRecoveryTimer);
+              bufferRecoveryTimer = null;
+            }
+            if (!shouldLoop && done) {
+              let duration = 0;
+              try {
+                duration = event.target.getDuration();
+              } catch (e) {
+              }
+              if (duration > 0) setSafety((duration + 3) * 1e3);
+            }
+          }
+          if ((event.data === 3 || event.data === 2 || event.data === 5) && !bufferRecoveryTimer) {
+            bufferRecoveryTimer = setTimeout(() => {
+              bufferRecoveryTimer = null;
+              if (!alive()) return;
+              try {
+                const st = event.target.getPlayerState();
+                if (st === 3 || st === 2 || st === 5) {
+                  console.warn("YouTube buffering/pause recovery triggered for:", item.filename);
+                  event.target.playVideo();
+                  if (!applyMuteWanted(item)) {
+                    try {
+                      event.target.unMute();
+                    } catch (_) {
+                    }
+                  }
+                }
+              } catch (e) {
+              }
+            }, 1500);
+          }
           if (event.data === 0 && !shouldLoop && done && Date.now() - playStartTime > 3e3) {
             clearSafety();
+            if (bufferRecoveryTimer) {
+              clearTimeout(bufferRecoveryTimer);
+              bufferRecoveryTimer = null;
+            }
             console.log("YouTube video ended:", item.filename);
             done();
           }
@@ -7395,6 +7464,12 @@ function showZoneItem(zone, div, items, index, timers = zoneTimers) {
     video.src = src;
     video.autoplay = true;
     video.__stOverlay = !!div.__stOverlay;
+    video.__stZoneNonPrimary = zone.sort_order > 0;
+    if (zone.sort_order > 0) {
+      video.addEventListener("volumechange", () => {
+        if (!video.muted) video.muted = true;
+      });
+    }
     video.muted = div.__stOverlay ? false : zone.sort_order > 0;
     video.loop = !multi;
     video.playsInline = true;

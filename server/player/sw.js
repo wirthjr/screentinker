@@ -33,10 +33,8 @@
 // it is (st-cache-status). Bumped so warm players take the new shell.
 // v32: slides ask the player for their photos and clips from this cache (index.html answerSlideMedia),
 // with X-ST-Cache-Only so a miss is a quick 504 instead of a download into the page's memory.
-// v33: the shell's network-first fetch gives up on a silent network after 8s and serves the cached
-// shell, so a panel that boots with its link up and its WAN down comes up from cache instead of
-// sitting dark through the TV's TCP timeout. Bumped so warm players take the new worker.
-const CACHE_NAME = 'rd-player-v33';
+// v34: strict-origin-when-cross-origin referrerpolicy, no-referrer override removed for YouTube streams.
+const CACHE_NAME = 'rd-player-v34';
 // Content lives in its own cache so the shell can be re-versioned (the activate handler deletes
 // every cache that is not CACHE_NAME) WITHOUT throwing away megabytes of media that are still
 // perfectly valid. Rolling the shell used to mean a player re-downloaded its entire playlist.

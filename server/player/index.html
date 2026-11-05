@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <!--
     Player debug error trap. MUST stay first inside <head> after the two
     mandatory <meta> tags (charset must come first per HTML spec). Runs
@@ -7046,7 +7047,7 @@
         alive = () => myGeneration === ytGeneration;
       }
       const setSafety = (ms) => {
-        const fire = () => { if (!alive()) return; console.log('YouTube safety net fired for:', item.filename); done(); };
+        const fire = () => { if (!alive()) return; console.log('YouTube safety net fired for:', item.filename); if (done) done(); };
         if (zoneMode) { clearTimeout(container.__stYtSafety); container.__stYtSafety = setTimeout(fire, ms); }
         else { clearTimeout(ytSafetyNet); ytSafetyNet = setTimeout(fire, ms); }
       };
@@ -7079,18 +7080,30 @@
       // Add a click-to-unmute overlay on top of the YouTube iframe
       // Only when a gesture is the ONLY thing in the way: prompting on an item an operator
       // deliberately muted trains viewers to click a button that undoes that.
+      // Use pointer-events: none on the container so it does not obstruct the iframe or trigger
+      // YouTube's unauthorized-overlay viewability blocker.
       if (window.MediaMute ? window.MediaMute.shouldOfferUnmute(muteState(item)) : !userHasInteracted) {
         const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:absolute;top:0;right:0;bottom:0;left:0;z-index:10;cursor:pointer;display:flex;align-items:end;justify-content:center;padding-bottom:40px;';
-        overlay.innerHTML = '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:10px 24px;border-radius:8px;font:14px sans-serif;pointer-events:none">Click to unmute</div>';
-        overlay.onclick = (e) => {
+        overlay.style.cssText = 'position:absolute;top:0;right:0;bottom:0;left:0;z-index:10;pointer-events:none;display:flex;align-items:end;justify-content:center;padding-bottom:40px;';
+        const unMuteBtn = document.createElement('div');
+        unMuteBtn.style.cssText = 'background:rgba(0,0,0,0.7);color:#fff;padding:10px 24px;border-radius:8px;font:14px sans-serif;cursor:pointer;pointer-events:auto;';
+        unMuteBtn.textContent = 'Click to unmute';
+        unMuteBtn.onclick = (e) => {
           e.stopPropagation();
           userHasInteracted = true;
           unlockAudio();
+          if (activeYtPlayer && typeof activeYtPlayer.unMute === 'function') {
+            try {
+              activeYtPlayer.unMute();
+              activeYtPlayer.setVolume(100);
+              activeYtPlayer.playVideo();
+            } catch (err) {}
+          }
           applyMute(item);   // resolves to unmuted here — the gesture was the only blocker
           console.log('Unmuted YouTube player via overlay');
           overlay.remove();
         };
+        overlay.appendChild(unMuteBtn);
         // Don't override container.style.position here — #playerContainer is already
         // position:fixed so absolute children anchor to it. Setting position:relative
         // collapsed the container to 0 height (no content sizing it in normal flow),
@@ -7104,6 +7117,7 @@
 
         const shouldLoop = zoneMode ? !!opts.loop : playlist.length <= 1;
         let playStartTime = 0;
+        let bufferRecoveryTimer = null;
         activeYtPlayer = new YT.Player(playerDiv.id, {
           videoId: videoId,
           width: '100%',
@@ -7119,17 +7133,21 @@
             modestbranding: 1,
             loop: shouldLoop ? 1 : 0,
             playlist: shouldLoop ? videoId : undefined,
+            playsinline: 1,
             enablejsapi: 1,
             origin: window.location.origin,
-            // #217: cap quality at 720p for items flagged "unstable connection" so weak
-            // WiFi doesn't stall on an auto-selected 1080p+ stream. vq is a hint the player
-            // may still override, so we also call setPlaybackQuality in onReady below.
-            vq: item.unstable_connection ? 'hd720' : (zoneMode ? 'large' : undefined),
           },
           events: {
             onReady: (event) => {
               if (!alive()) return;
               console.log('YouTube player ready:', item.filename);
+              try {
+                const iframe = event.target.getIframe();
+                if (iframe) {
+                  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                  iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                }
+              } catch (_) {}
               event.target.playVideo();
               // Re-resolve here too: playerVars are read once at construction, and a mute toggle can
               // land while the IFrame API is still loading.
@@ -7151,12 +7169,6 @@
                 // so a video whose ENDED never comes cannot hold the screen forever.
                 else if (item.play_to_end) setSafety(Math.max(1, Number(item.duration_sec) || 10) * 1000);
               }
-              // #217: best-effort quality cap for weak WiFi. setPlaybackQuality is a
-              // hint (YouTube may still adapt), but combined with the vq playerVar it
-              // biases the initial selection toward 720p instead of 1080p+.
-              if (item.unstable_connection) {
-                try { event.target.setPlaybackQuality('hd720'); } catch {}
-              }
               // #216: turn on YouTube captions when the content is flagged. loadModule
               // makes the CC module available, then setOption selects the language track.
               // Both are best-effort (undocumented, version-dependent) — wrapped so a
@@ -7169,6 +7181,7 @@
             onError: (event) => {
               if (!alive()) return;
               clearSafety();
+              if (bufferRecoveryTimer) { clearTimeout(bufferRecoveryTimer); bufferRecoveryTimer = null; }
               console.error('YouTube error', event.data, 'for:', item.filename);
               if (zoneMode) {
                 if (done) setTimeout(() => { if (alive()) done(); }, 2000);
@@ -7179,23 +7192,49 @@
             },
             onAutoplayBlocked: () => {
               if (!alive()) return;
-              console.warn('YouTube autoplay blocked:', item.filename);
+              console.warn('YouTube autoplay blocked — muting and retrying play:', item.filename);
+              try {
+                if (activeYtPlayer) {
+                  activeYtPlayer.mute();
+                  activeYtPlayer.playVideo();
+                }
+              } catch (_) {}
             },
             onStateChange: (event) => {
               if (!alive()) return;
-              // Track when video actually starts playing
+              // Track when video actually starts playing (1 = PLAYING)
               if (event.data === 1) {
                 playStartTime = Date.now();
+                if (bufferRecoveryTimer) { clearTimeout(bufferRecoveryTimer); bufferRecoveryTimer = null; }
                 if (!shouldLoop && done) {
                   let duration = 0;
                   try { duration = event.target.getDuration(); } catch {}
                   if (duration > 0) setSafety((duration + 3) * 1000);
                 }
               }
+              // 3 = BUFFERING, 2 = PAUSED, 5 = CUED: If video is buffering, paused or cued,
+              // re-trigger playVideo after 1.5s to break out of frozen buffer states.
+              if ((event.data === 3 || event.data === 2 || event.data === 5) && !bufferRecoveryTimer) {
+                bufferRecoveryTimer = setTimeout(() => {
+                  bufferRecoveryTimer = null;
+                  if (!alive()) return;
+                  try {
+                    const st = event.target.getPlayerState();
+                    if (st === 3 || st === 2 || st === 5) {
+                      console.warn('YouTube buffering/pause recovery triggered for:', item.filename);
+                      event.target.playVideo();
+                      if (!applyMuteWanted(item)) {
+                        try { event.target.unMute(); } catch (_) {}
+                      }
+                    }
+                  } catch (e) {}
+                }, 1500);
+              }
               // YT.PlayerState.ENDED = 0 — advance to next video
               // Ignore ENDED if video played for less than 3 seconds (spurious during init)
               if (event.data === 0 && !shouldLoop && done && (Date.now() - playStartTime) > 3000) {
                 clearSafety();
+                if (bufferRecoveryTimer) { clearTimeout(bufferRecoveryTimer); bufferRecoveryTimer = null; }
                 console.log('YouTube video ended:', item.filename);
                 done();
               }

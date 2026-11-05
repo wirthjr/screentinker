@@ -32,7 +32,8 @@ data class Zone(
     val heightPercent: Float,
     val zIndex: Int,
     val zoneType: String,
-    val fitMode: String
+    val fitMode: String,
+    val sortOrder: Int = 0
 )
 
 class ZoneManager(
@@ -156,7 +157,8 @@ class ZoneManager(
                 heightPercent = z.optDouble("height_percent", 100.0).toFloat(),
                 zIndex = z.optInt("z_index", 0),
                 zoneType = z.optString("zone_type", "content"),
-                fitMode = z.optString("fit_mode", "cover")
+                fitMode = z.optString("fit_mode", "cover"),
+                sortOrder = z.optInt("sort_order", i)
             )
         }
         Log.i(TAG, "Setup ${zones.size} zones")
@@ -377,7 +379,8 @@ class ZoneManager(
         val widgetType = if (a.isNull("widget_type")) null else a.optString("widget_type", null)
         val contentId = if (a.isNull("content_id")) null else a.optString("content_id", null)
         val filepath = a.optString("filepath", "")
-        val isMuted = a.optInt("muted", 0) == 1
+        val isNonPrimaryZone = zone.sortOrder > 0
+        val isMuted = isNonPrimaryZone || a.optInt("muted", 0) == 1
         val durationMs = a.optInt("duration_sec", 10).coerceAtLeast(3) * 1000L
 
         // Per-zone content switch log (fires on initial render AND each rotation), so
@@ -478,6 +481,11 @@ class ZoneManager(
                     }
                 }
                 val exoPlayer = ExoPlayer.Builder(context).build().apply {
+                    if (isMuted) {
+                        trackSelectionParameters = trackSelectionParameters.buildUpon()
+                            .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_AUDIO, true)
+                            .build()
+                    }
                     setSource(this)
                     // A live stream never ends, so REPEAT is moot; a normal clip in a lone zone loops.
                     repeatMode = if (multi && !isLive) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL

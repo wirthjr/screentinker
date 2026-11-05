@@ -23,7 +23,7 @@ function transform(source) {
 }
 
 function legacyHtml() {
-  const source = fs.readFileSync(path.join(PLAYER, 'index.html'), 'utf8');
+  const source = fs.readFileSync(path.join(PLAYER, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
   const start = source.indexOf(START);
   if (start < 0) throw new Error('player script start marker not found');
   const codeStart = start + '<script>'.length;
