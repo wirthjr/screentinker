@@ -1490,12 +1490,16 @@ function repeatSelect(item) {
   </select>`;
 }
 
-// #624 "Play to end": YouTube only. With it on, the item moves on when the video ends, and its
-// duration is only the fallback for a screen that cannot read the video's length.
+// #624 "Play to end": YouTube and Widgets (news ticker / feeds). With it on, the item moves on when
+// the video ends or widget completes 1 full cycle, and duration is fallback.
 function playToEndToggle(item) {
-  if (item.mime_type !== 'video/youtube') return '';
-  return `<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);white-space:nowrap;cursor:pointer" title="${esc(t('playlist.play_to_end_hint'))}">
-    <input type="checkbox" class="item-play-to-end" data-item-id="${item.id}" ${item.play_to_end ? 'checked' : ''}>${esc(t('playlist.play_to_end'))}</label>`;
+  const isYt = item.mime_type === 'video/youtube';
+  const isWidget = !!item.widget_id || !!item.widget_type;
+  if (!isYt && !isWidget) return '';
+  const label = isWidget ? (t('playlist.play_to_end_widget') || 'Ciclo completo') : t('playlist.play_to_end');
+  const hint = isWidget ? (t('playlist.play_to_end_widget_hint') || 'Avança ao terminar 1 volta completa do feed') : t('playlist.play_to_end_hint');
+  return `<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);white-space:nowrap;cursor:pointer" title="${esc(hint)}">
+    <input type="checkbox" class="item-play-to-end" data-item-id="${item.id}" ${item.play_to_end ? 'checked' : ''}>${esc(label)}</label>`;
 }
 
 // #660 "Transparent background": a widget or HTML bundle drawn see-through, whatever colour the
@@ -1582,7 +1586,7 @@ function renderItems(items) {
           ? `<label style="font-size:12px;color:var(--text-muted)" title="${esc(t('playlist.dwell_hint'))}">${t('playlist.dwell')}</label>
         <input type="number" class="input item-duration" data-item-id="${item.id}" data-live="1" value="${item.duration_sec || 0}" min="0" title="${esc(t('playlist.dwell_hint'))}" style="width:60px;padding:4px 8px;font-size:13px;text-align:center">
         <span style="font-size:12px;color:var(--text-muted)">${t('playlist.sec')}</span>`
-          : `${playToEndToggle(item)}${prerotatedToggle(item)}${transparentToggle(item)}<label style="font-size:12px;color:var(--text-muted)"${item.play_to_end && item.mime_type === 'video/youtube' ? ` title="${esc(t('playlist.play_to_end_fallback_hint'))}">${t('playlist.play_to_end_fallback')}` : `>${t('playlist.duration')}`}</label>
+          : `${playToEndToggle(item)}${prerotatedToggle(item)}${transparentToggle(item)}<label style="font-size:12px;color:var(--text-muted)"${item.play_to_end ? ` title="${esc(t('playlist.play_to_end_fallback_hint'))}">${t('playlist.play_to_end_fallback')}` : `>${t('playlist.duration')}`}</label>
         <input type="number" class="input item-duration" data-item-id="${item.id}" value="${item.duration_sec}" min="1" style="width:60px;padding:4px 8px;font-size:13px;text-align:center">
         <span style="font-size:12px;color:var(--text-muted)">${t('playlist.sec')}</span>`}
         ${currentPlaybackOrder === 'weighted' && !item.child_playlist_id ? `<label style="font-size:12px;color:var(--text-muted)">${t('playlist.weight')}</label>

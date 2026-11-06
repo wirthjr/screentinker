@@ -353,17 +353,25 @@ class ZoneManager(
      * already decoded as [preDecoded] so the picture is not decoded twice.
      */
     private fun mountZoneItem(zone: Zone, assignments: List<JSONObject>, activeIdx: Int, params: FrameLayout.LayoutParams, gen: Int, preDecoded: Bitmap?, txStartedAt: Long = 0L) {
-        zoneViews.remove(zone.id)?.let { container.removeView(it) }
+        val oldView = zoneViews.remove(zone.id)
         forgetZoneHealth(zone.id)
         zoneExoPlayers.remove(zone.id)?.release()
         zoneLiveInputs.remove(zone.id)?.release()
         zoneFaces[zone.id] = ZoneFace.NONE
 
         if (activeIdx < 0) {
+            oldView?.let { container.removeView(it) }
             scheduleZoneAdvance(zone.id, 30_000L) { showZoneItem(zone, assignments, 0, params) }
             return
         }
         val a = assignments[activeIdx]
+        val widgetType = if (a.isNull("widget_type")) null else a.optString("widget_type", null)
+        val mimeType = a.optString("mime_type", "")
+        val willBufferView = (widgetType != null || mimeType == ItemTiming.BUNDLE_MIME) && oldView != null
+        if (!willBufferView) {
+            oldView?.let { container.removeView(it) }
+        }
+
         // Scheduled zones cycle even with one active item so windows re-evaluate.
         val multi = assignments.size > 1 || assignments.any {
             (it.optJSONArray("schedules")?.length() ?: 0) > 0
@@ -373,10 +381,8 @@ class ZoneManager(
         // Guarded by the zone's generation: a stale callback from an item already replaced is ignored.
         val advance: () -> Unit = { if (zoneGeneration[zone.id] == gen) showZoneItem(zone, assignments, activeIdx + 1, params) }
 
-        val mimeType = a.optString("mime_type", "")
         val isLive = mimeType == "video/hls" || mimeType == "video/rtsp" || LiveInput.isLiveInput(mimeType)   // live: never ends -> dwell, not STATE_ENDED
         val remoteUrl = if (a.isNull("remote_url")) null else a.optString("remote_url", null)
-        val widgetType = if (a.isNull("widget_type")) null else a.optString("widget_type", null)
         val contentId = if (a.isNull("content_id")) null else a.optString("content_id", null)
         val filepath = a.optString("filepath", "")
         val isNonPrimaryZone = zone.sortOrder > 0
@@ -393,6 +399,10 @@ class ZoneManager(
             widgetType != null -> {
                 val widgetId = a.optString("widget_id", "")
                 val webView = createWebView()
+                val toEnd = multi && a.optInt("play_to_end", 0) == 1
+                if (toEnd) {
+                    webView.addJavascriptInterface(ZoneWidgetBridge(zone.id, gen, advance), "STWidget")
+                }
                 // rev, exactly as the fullscreen path does: a widget's id does not change when it
                 // is edited, so without it a zone kept rendering the old content indefinitely.
                 val wRev = a.optLong("widget_rev", 0L)
@@ -401,11 +411,34 @@ class ZoneManager(
                     "&rev=" + wRev +
                     com.remotedisplay.player.util.WidgetUrls.transparentParam(a.optInt("transparent_bg", 0) == 1) +
                     com.remotedisplay.player.util.WidgetUrls.panelFragment(a.optString("widget_panel", ""))
+
+                if (oldView != null) {
+                    var removed = false
+                    val removeOld: () -> Unit = {
+                        if (!removed) {
+                            removed = true
+                            if (container.indexOfChild(oldView) >= 0) {
+                                container.removeView(oldView)
+                            }
+                        }
+                    }
+                    webView.webViewClient = object : android.webkit.WebViewClient() {
+                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            view?.postDelayed({ removeOld() }, 100L)
+                        }
+                    }
+                    handler.postDelayed({ removeOld() }, 3000L)
+                }
+
                 webView.loadUrl(wUrl)
                 webView.layoutParams = params
                 addZoneView(zone, webView)
                 zoneFaces[zone.id] = ZoneFace.WEB
-                if (multi) scheduleZoneAdvance(zone.id, durationMs, advance)
+                if (multi) {
+                    val waitTime = if (toEnd) maxOf(durationMs, 300_000L) else durationMs
+                    scheduleZoneAdvance(zone.id, waitTime, advance)
+                }
             }
             // HTML bundle - the server's flattened document, in a WebView like a widget. `rev` is
             // content_rev so a replaced archive actually reloads; without this branch a bundle in a
@@ -870,6 +903,19 @@ class ZoneManager(
                 if (!current() || !PlayToEnd.endedCounts(System.currentTimeMillis() - startedAt)) return@post
                 cancelZoneRotation(zoneId)
                 advance()
+            }
+        }
+    }
+
+    private inner class ZoneWidgetBridge(val zoneId: String, val gen: Int, val advance: () -> Unit) {
+        @android.webkit.JavascriptInterface
+        fun ended() {
+            handler.post {
+                if (zoneGeneration[zoneId] == gen) {
+                    com.remotedisplay.player.util.DebugLog.i("Zone", "'$zoneId': widget cycle ended, advancing")
+                    cancelZoneRotation(zoneId)
+                    advance()
+                }
             }
         }
     }

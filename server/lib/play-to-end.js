@@ -18,8 +18,8 @@
 
 const YOUTUBE_MIME = 'video/youtube';
 
-function appliesTo(mime) {
-  return mime === YOUTUBE_MIME;
+function appliesTo(mime, isWidget = false) {
+  return mime === YOUTUBE_MIME || !!isWidget;
 }
 
 // The stored value: 1 or NULL. Anything truthy-looking turns it on; false/0/''/null turn it off.
@@ -30,9 +30,9 @@ function normalizePlayToEnd(v) {
 
 // The value to STORE on a newly added item. A YouTube item plays to the end unless the request
 // says otherwise; anything else never carries the flag. Images and widgets keep their duration.
-function resolvePlayToEnd(requested, mime) {
-  if (!appliesTo(mime)) return null;
-  if (requested === undefined) return 1;
+function resolvePlayToEnd(requested, mime, isWidget = false) {
+  if (!appliesTo(mime, isWidget)) return null;
+  if (requested === undefined) return isWidget ? null : 1;
   return normalizePlayToEnd(requested);
 }
 

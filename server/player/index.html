@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="referrer" content="origin">
   <!--
     Player debug error trap. MUST stay first inside <head> after the two
     mandatory <meta> tags (charset must come first per HTML spec). Runs
@@ -1934,6 +1934,7 @@
     // playback muted).
     let userHasInteracted = false;
     let advanceTimer = null;
+    let activeWidgetEndListener = null;
 
     /*
      * Arm the single advance timer. ALWAYS clear the outgoing one first.
@@ -6988,6 +6989,13 @@
 
     // Load YouTube IFrame API once. (ytApiReady / ytApiCallbacks are declared at the
     // top of the script alongside the other player state.)
+    //
+    // Smart TV browsers (TCL, Hisense, older WebKit forks) often block or silently
+    // drop the external iframe_api script, so onYouTubeIframeAPIReady never fires.
+    // We set an 8-second timeout: if the API does not come up in time, every waiting
+    // callback is called with ytApiReady = 'fallback', so createYoutubeEmbed can
+    // mount a plain <iframe> instead of the full IFrame API player.
+    let ytApiFallbackTimer = null;
     function loadYoutubeApi(cb) {
       if (ytApiReady) { cb(); return; }
       ytApiCallbacks.push(cb);
@@ -6995,12 +7003,33 @@
         const tag = document.createElement('script');
         tag.id = 'yt-api-script';
         tag.src = 'https://www.youtube.com/iframe_api';
+        tag.onerror = () => {
+          if (ytApiFallbackTimer) { clearTimeout(ytApiFallbackTimer); ytApiFallbackTimer = null; }
+          if (!ytApiReady) {
+            console.warn('[YT] iframe_api script failed to load — switching to plain iframe fallback');
+            ytApiReady = 'fallback';
+            ytApiCallbacks.forEach(fn => fn());
+            ytApiCallbacks = [];
+          }
+        };
         document.head.appendChild(tag);
         window.onYouTubeIframeAPIReady = () => {
+          if (ytApiFallbackTimer) { clearTimeout(ytApiFallbackTimer); ytApiFallbackTimer = null; }
           ytApiReady = true;
           ytApiCallbacks.forEach(fn => fn());
           ytApiCallbacks = [];
         };
+        // Timeout: if the API has not loaded in 8s (blocked by TV browser or firewall),
+        // fall back to a plain <iframe> so the video still plays.
+        ytApiFallbackTimer = setTimeout(() => {
+          ytApiFallbackTimer = null;
+          if (!ytApiReady) {
+            console.warn('[YT] iframe_api did not load within 8s — switching to plain iframe fallback');
+            ytApiReady = 'fallback';
+            ytApiCallbacks.forEach(fn => fn());
+            ytApiCallbacks = [];
+          }
+        }, 8000);
       }
     }
 
@@ -7115,6 +7144,48 @@
         // Bail if a newer player was created while we waited for the API
         if (!alive()) return;
 
+        // ── Plain-iframe fallback (Smart TVs that block iframe_api) ─────────────
+        // If the YouTube IFrame API failed to load (blocked by the TV browser,
+        // firewall, or no external script allowed), mount a plain <iframe> with
+        // the embed URL. No playback events = safety-net timer only; no IFrame
+        // API controls (mute/unmute via API won't work, but mute=1 in the URL does).
+        if (typeof ytApiReady !== 'undefined' && ytApiReady === 'fallback') {
+          console.warn('[YT] Using plain iframe fallback for:', videoId);
+          const shouldLoop = zoneMode ? !!opts.loop : playlist.length <= 1;
+          const muteParam = applyMuteWanted(item) ? 1 : 0;
+          const loopParam = shouldLoop ? 1 : 0;
+          const originParam = (() => {
+            try {
+              const o = window.location.origin;
+              return /localhost|127\.0\.0\.1/.test(o) ? '' : '&origin=' + encodeURIComponent(o);
+            } catch { return ''; }
+          })();
+          // Remove enablejsapi from fallback URL — it requires postMessage with the
+          // IFrame API and is exactly what the TV cannot do. Without it YouTube
+          // plays as a dumb embed without communication overhead.
+          const fallbackSrc = 'https://www.youtube-nocookie.com/embed/' + videoId +
+            '?autoplay=1&mute=' + muteParam + '&controls=0&rel=0&modestbranding=1' +
+            '&loop=' + loopParam + (loopParam ? '&playlist=' + videoId : '') +
+            '&playsinline=1' + originParam;
+          const iframe = document.createElement('iframe');
+          iframe.src = fallbackSrc;
+          iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0';
+          iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+          iframe.setAttribute('referrerpolicy', 'origin');
+          iframe.setAttribute('allowfullscreen', '');
+          // Clear the div the IFrame API would have replaced and mount the raw iframe
+          playerDiv.innerHTML = '';
+          playerDiv.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
+          playerDiv.appendChild(iframe);
+          // Safety-net: advance after the item's configured duration (no ENDED event in fallback)
+          if (!shouldLoop && done) {
+            const safeSec = Math.max(10, Number(item.duration_sec) || 30);
+            setSafety(safeSec * 1000);
+          }
+          return;
+        }
+        // ── Normal IFrame API path ───────────────────────────────────────────────
+
         const shouldLoop = zoneMode ? !!opts.loop : playlist.length <= 1;
         let playStartTime = 0;
         let bufferRecoveryTimer = null;
@@ -7135,7 +7206,7 @@
             playlist: shouldLoop ? videoId : undefined,
             playsinline: 1,
             enablejsapi: 1,
-            origin: window.location.origin,
+            origin: (() => { try { const o = window.location.origin; return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) ? undefined : o; } catch { return undefined; } })(),
           },
           events: {
             onReady: (event) => {
@@ -7144,7 +7215,7 @@
               try {
                 const iframe = event.target.getIframe();
                 if (iframe) {
-                  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                  iframe.setAttribute('referrerpolicy', 'origin');
                   iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
                 }
               } catch (_) {}
@@ -7183,6 +7254,28 @@
               clearSafety();
               if (bufferRecoveryTimer) { clearTimeout(bufferRecoveryTimer); bufferRecoveryTimer = null; }
               console.error('YouTube error', event.data, 'for:', item.filename);
+
+              // Se o player da API falhou (código 150/101 ou bloqueio de TV), tenta resgatar com iframe puro do nocookie
+              if (!playerDiv.__stRecovered) {
+                playerDiv.__stRecovered = true;
+                console.warn('[YT] Tentando recuperação via iframe direto youtube-nocookie para:', videoId);
+                const muteParam = applyMuteWanted(item) ? 1 : 0;
+                const recSrc = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${muteParam}&controls=0&rel=0&playsinline=1`;
+                const recIframe = document.createElement('iframe');
+                recIframe.src = recSrc;
+                recIframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0';
+                recIframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                recIframe.setAttribute('referrerpolicy', 'origin');
+                recIframe.setAttribute('allowfullscreen', '');
+                playerDiv.innerHTML = '';
+                playerDiv.appendChild(recIframe);
+                if (!shouldLoop && done) {
+                  const safeSec = Math.max(10, Number(item.duration_sec) || 30);
+                  setSafety(safeSec * 1000);
+                }
+                return;
+              }
+
               if (zoneMode) {
                 if (done) setTimeout(() => { if (alive()) done(); }, 2000);
               } else if (playlist.length > 1 && !syncFollower) {
@@ -7258,6 +7351,10 @@
     function clearZoneTimers() {
       for (const k in zoneTimers) clearTimeout(zoneTimers[k]);
       zoneTimers = {};
+      const zc = document.getElementById('zoneContainer');
+      if (zc) zc.querySelectorAll('div').forEach(d => {
+        if (d.__stWidgetEndListener) { window.removeEventListener('message', d.__stWidgetEndListener); d.__stWidgetEndListener = null; }
+      });
     }
 
     function teardownCurrentMedia(keep) {
@@ -7273,6 +7370,7 @@
       // On a buffered widget reveal (keep set) the widget's advance/refresh timer was just
       // armed by renderContent and must survive; only a real teardown cancels it.
       if (!keep && advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+      if (activeWidgetEndListener) { window.removeEventListener('message', activeWidgetEndListener); activeWidgetEndListener = null; }
       // #215: a stale YouTube safety-net timer must never fire into a torn-down/rotated
       // playlist and force a spurious advance.
       if (ytSafetyNet) { clearTimeout(ytSafetyNet); ytSafetyNet = null; }
@@ -8239,7 +8337,22 @@
           // buffered swap.
           const held = peekNextIndex(currentIndex) === currentIndex;
           if (held) scheduleAdvance(reevaluateHeldWidget, WIDGET_SOLO_REFRESH_MS);
-          else scheduleAdvance(nextItem, (item.duration_sec || 30) * 1000);
+          else {
+            const dur = (item.duration_sec || 30) * 1000;
+            const toEnd = !!item.play_to_end;
+            if (toEnd) {
+              const onEnd = (ev) => {
+                if (ev && ev.data && ev.data.type === 'screentinker:widget-end') {
+                  window.removeEventListener('message', onEnd);
+                  activeWidgetEndListener = null;
+                  nextItem();
+                }
+              };
+              activeWidgetEndListener = onEnd;
+              window.addEventListener('message', onEnd);
+            }
+            scheduleAdvance(nextItem, toEnd ? Math.max(dur, 300000) : dur);
+          }
         }
         return;
       }
@@ -8847,6 +8960,7 @@
       div.__stShownAt = Date.now();
       // #790: a buffered revision swap still loading belongs to what this zone showed before.
       if (div.__stWidgetSwap) { clearTimeout(div.__stWidgetSwap.timer); div.__stWidgetSwap = null; }
+      if (div.__stWidgetEndListener) { window.removeEventListener('message', div.__stWidgetEndListener); div.__stWidgetEndListener = null; }
       div.__stIdx = null; div.__stItem = null;   // set again below once an item is chosen
       // #74/#75: skip items whose schedule excludes them now; idle the zone if none.
       const activeIdx = zoneNextActive(items, index, zone.id);
@@ -8875,7 +8989,7 @@
       }
       // Tear down any prior media in this zone before swapping.
       div.querySelectorAll('video').forEach(v => { try { destroyHls(v); v.onended = null; v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} });
-      div.innerHTML = '';
+      if (!a.widget_id) div.innerHTML = '';
 
       const isYoutube = a.mime_type === 'video/youtube';
       const isHls = a.mime_type === 'video/hls';   // literal: showZoneItem is extracted + eval'd in isolation by a test
@@ -8909,14 +9023,49 @@
           .catch(() => { if (iframe.isConnected !== false) iframe.src = bundleUrl; });
         if (multi) timers[zone.id] = setTimeout(advance, dur);
       } else if (a.widget_id) {
+        const oldIframe = div.querySelector('iframe');
         const iframe = document.createElement('iframe');
         iframe.src = `${config.serverUrl}/api/widgets/${a.widget_id}/render?device=${encodeURIComponent(config.deviceId||'')}&rev=${a.widget_rev||0}${a.transparent_bg ? '&transparent=1' : ''}${a.widget_panel ? '#panel=' + encodeURIComponent(a.widget_panel) : ''}`;
         // Sandbox into a unique origin so widget scripts can't read window.parent
         // state (localStorage / JWT). allow-scripts keeps inline widget code running.
         iframe.setAttribute('sandbox', widgetSandboxAttr(a));
+        if (oldIframe) {
+          iframe.style.position = 'absolute';
+          iframe.style.top = '0';
+          iframe.style.left = '0';
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.opacity = '0';
+          iframe.style.transition = 'opacity 0.2s ease-in';
+          let swapped = false;
+          const doSwap = () => {
+            if (swapped) return;
+            swapped = true;
+            iframe.style.opacity = '1';
+            setTimeout(() => {
+              if (oldIframe && oldIframe.parentNode === div) {
+                try { div.removeChild(oldIframe); } catch (e) {}
+              }
+            }, 200);
+          };
+          iframe.addEventListener('load', () => setTimeout(doSwap, 50));
+          setTimeout(doSwap, 2500);
+        }
         div.appendChild(iframe);
         if (PREVIEW_MODE && a.widget_type === 'webpage') addWebpageNote(div); // #104
-        if (multi) timers[zone.id] = setTimeout(advance, dur);
+        const toEnd = !!a.play_to_end && multi;
+        if (toEnd) {
+          const onWidgetMsg = (ev) => {
+            if (ev && ev.data && ev.data.type === 'screentinker:widget-end') {
+              window.removeEventListener('message', onWidgetMsg);
+              div.__stWidgetEndListener = null;
+              advance();
+            }
+          };
+          div.__stWidgetEndListener = onWidgetMsg;
+          window.addEventListener('message', onWidgetMsg);
+        }
+        if (multi) timers[zone.id] = setTimeout(advance, toEnd ? Math.max(dur, 300000) : dur);
       } else if (isYoutube) {
         // #624: play to end moves the ZONE on when the video ends (the embed's safety net covers a
         // missing ENDED). Otherwise the zone's own timer does, and the clip loops until then. A

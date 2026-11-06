@@ -29,6 +29,9 @@ android/build/
 android/app/build/
 android/local.properties
 android/release-key.jks
+android/arco
+android/*.jks
+android/*.keystore
 *.apk
 *.aab
 *.wgt

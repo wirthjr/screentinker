@@ -782,7 +782,7 @@ function widgetIframeSandboxForWorkspace(workspaceId) {
 }
 
 // Render widget as HTML page
-router.get('/:id/render', (req, res) => {
+router.get('/:id/render', async (req, res) => {
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(req.params.id);
   if (!widget) return res.status(404).send('Widget not found');
   // A weather, clock or radar widget set to follow the screen takes its place from the screen that
@@ -917,6 +917,17 @@ router.get('/:id/render', (req, res) => {
     res.setHeader('Content-Security-Policy', rssCsp(`${req.protocol}://${req.get('host')}`));
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
+    const news = require('../lib/news-feed');
+    const feedUrl = typeof config.feed_url === 'string' ? config.feed_url.trim() : '';
+    const mode = config.feed_mode === 'page' ? 'page' : 'feed';
+    if (feedUrl && !news.peek(feedUrl, mode)) {
+      try {
+        await Promise.race([
+          news.getFeed(feedUrl, mode),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+        ]);
+      } catch (_) {}
+    }
     return res.send(renderRSS(config));
   }
   if (widget.widget_type === 'template') {
@@ -1360,10 +1371,26 @@ function renderRSS(c, opts = {}) {
   var cfg = JSON.parse(document.getElementById('cfg').textContent);
   var root = document.getElementById('root');
   var items = cfg.seed;
-  var anim = null, rot = null, idx = 0;
+  var anim = null, rot = null, cycleTimer = null, idx = 0;
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
   function message(text) { stop(); root.innerHTML = ''; root.appendChild(el('div', 'msg', text)); }
-  function stop() { if (anim) { try { anim.cancel(); } catch (e) {} anim = null; } if (rot) { clearInterval(rot); rot = null; } }
+  function stop() {
+    if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+    if (anim) { try { anim.cancel(); } catch (e) {} anim = null; }
+    if (rot) { clearInterval(rot); rot = null; }
+  }
+  function notifyCycleEnd() {
+    try {
+      if (window.STWidget && typeof window.STWidget.ended === 'function') {
+        window.STWidget.ended();
+      }
+    } catch (e) {}
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'screentinker:widget-end' }, '*');
+      }
+    } catch (e) {}
+  }
 
   /* Ticker. scroll_speed calibrates a constant px/sec (one viewport width per scroll_speed seconds),
      and the duration is derived from the strip's real width, so a long feed takes proportionally
@@ -1372,28 +1399,41 @@ function renderRSS(c, opts = {}) {
     stop();
     root.innerHTML = '';
     var strip = el('div', 'ticker');
-    for (var i = 0; i < items.length; i++) {
-      var it = el('div', 'item');
-      if (cfg.images && items[i].image) {
-        var tp = el('span', 'tp'); var th = Math.round(cfg.font * 1.7);
-        tp.style.height = th + 'px'; tp.style.width = Math.round(th * 16 / 9) + 'px';
-        tp.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\\\\n]/g, '') + '")';
-        it.appendChild(tp);
+    function addItems() {
+      for (var i = 0; i < items.length; i++) {
+        var it = el('div', 'item');
+        if (cfg.images && items[i].image) {
+          var tp = el('span', 'tp'); var th = Math.round(cfg.font * 1.7);
+          tp.style.height = th + 'px'; tp.style.width = Math.round(th * 16 / 9) + 'px';
+          tp.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\n]/g, '') + '")';
+          it.appendChild(tp);
+        }
+        it.appendChild(el('span', 'title', items[i].title)); strip.appendChild(it);
+        strip.appendChild(el('div', 'item sep', '\u2022'));
       }
-      it.appendChild(el('span', 'title', items[i].title)); strip.appendChild(it);
-      strip.appendChild(el('div', 'item sep', '\\u2022'));
     }
+    addItems();
     root.appendChild(strip);
-    var vw = window.innerWidth, w = strip.scrollWidth;
-    var ms = Math.max(1000, ((vw + w) / (vw / cfg.speed)) * 1000);
-    if (strip.animate) {
-      anim = strip.animate([{ transform: 'translateX(' + vw + 'px)' }, { transform: 'translateX(-' + w + 'px)' }], { duration: ms, iterations: Infinity, easing: 'linear' });
-    } else {
-      var st = document.createElement('style');
-      st.textContent = '@keyframes stt{from{transform:translateX(' + vw + 'px)}to{transform:translateX(-' + w + 'px)}}';
-      root.appendChild(st);
-      strip.style.animation = 'stt ' + (ms / 1000) + 's linear infinite';
-    }
+    requestAnimationFrame(function () {
+      var vw = root.clientWidth || window.innerWidth || 1920;
+      var w = strip.scrollWidth;
+      if (w <= 0) w = Math.max(1200, items.length * 400);
+      var maxLoops = 20;
+      while (strip.scrollWidth < (w + vw + 200) && maxLoops-- > 0) {
+        addItems();
+      }
+      var pxPerSec = Math.max(10, vw / Math.max(1, cfg.speed));
+      var ms = Math.max(5000, (w / pxPerSec) * 1000);
+      cycleTimer = setTimeout(notifyCycleEnd, ms);
+      if (strip.animate) {
+        anim = strip.animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(-' + w + 'px)' }], { duration: ms, iterations: Infinity, easing: 'linear' });
+      } else {
+        var st = document.createElement('style');
+        st.textContent = '@keyframes stt{from{transform:translateX(0px)}to{transform:translateX(-' + w + 'px)}}';
+        root.appendChild(st);
+        strip.style.animation = 'stt ' + (ms / 1000) + 's linear infinite';
+      }
+    });
   }
 
   /* Headlines: one story at a time, its picture beside (or above, in portrait) the words. */
@@ -1410,18 +1450,23 @@ function renderRSS(c, opts = {}) {
     var cards = [];
     for (var i = 0; i < items.length; i++) {
       var c = el('div', 'hl');
-      if (cfg.images && items[i].image) { var p = el('div', 'pic'); p.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\\\\n]/g, '') + '")'; c.appendChild(p); }
+      if (cfg.images && items[i].image) { var p = el('div', 'pic'); p.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\n]/g, '') + '")'; c.appendChild(p); }
       var tx = el('div', 'txt');
       tx.appendChild(el('div', 't', items[i].title));
       if (items[i].summary) tx.appendChild(el('div', 's', items[i].summary));
       var w = when(items[i].published); if (w) tx.appendChild(el('div', 'w', w));
       c.appendChild(tx); root.appendChild(c); cards.push(c);
     }
-    idx = idx % cards.length;
-    cards[idx].className = 'hl on';
-    if (cards.length > 1) rot = setInterval(function () {
-      cards[idx].className = 'hl'; idx = (idx + 1) % cards.length; cards[idx].className = 'hl on';
-    }, cfg.interval);
+    idx = 0;
+    if (cards.length > 0) cards[0].className = 'hl on';
+    if (cards.length > 1) {
+      rot = setInterval(function () {
+        cards[idx].className = 'hl'; idx = (idx + 1) % cards.length; cards[idx].className = 'hl on';
+      }, cfg.interval);
+      cycleTimer = setTimeout(notifyCycleEnd, cards.length * cfg.interval);
+    } else if (cards.length === 1) {
+      cycleTimer = setTimeout(notifyCycleEnd, cfg.interval);
+    }
   }
 
   function draw() {
@@ -1449,9 +1494,12 @@ function renderRSS(c, opts = {}) {
       x.send();
     } catch (e) { keep(); }
   }
-  if (items) draw();
+  if (items && items.length) {
+    draw();
+  } else {
+    load();
+  }
   window.addEventListener('resize', function () { if (items && items.length && cfg.layout !== 'headlines') ticker(); });
-  load();
   setInterval(load, 300000);
 })();
 </script></body></html>`;

@@ -288,8 +288,8 @@ function decorateSnapshotItem(it) {
   delete it.content_meta;
   if (it.weight && Number(it.weight) !== 1) it.weight = Number(it.weight); else delete it.weight;
   if (!it.repeat_every_sec) delete it.repeat_every_sec;
-  // #624: sent only when set and only on YouTube, so every other snapshot stays byte-identical.
-  if (it.play_to_end && playToEnd.appliesTo(it.mime_type)) it.play_to_end = 1; else delete it.play_to_end;
+  // #624: sent only when set and only on YouTube or widgets, so every other snapshot stays byte-identical.
+  if (it.play_to_end && (playToEnd.appliesTo(it.mime_type) || it.widget_id)) it.play_to_end = 1; else delete it.play_to_end;
   // rtsps camera with a self-signed certificate: sent only when set and only on a camera item, so
   // every other snapshot stays byte-identical.
   if (Number(it.tls_self_signed) === 1 && it.mime_type === 'video/rtsp') it.tls_self_signed = 1; else delete it.tls_self_signed;
@@ -2045,13 +2045,13 @@ router.put('/:id/items/:itemId', requirePlaylistWrite, (req, res) => {
     if (every && item.child_playlist_id) return res.status(400).json({ error: 'A nested playlist cannot repeat on its own interval; set it on the items inside it' });
     updates.push('repeat_every_sec = ?'); values.push(every);
   }
-  // #624 "Play to end" (lib/play-to-end.js): YouTube only. Turning it off is always allowed; a row
-  // later swapped to other content keeps the column, but the snapshot drops it for non-YouTube.
+  // #624 "Play to end" (lib/play-to-end.js): YouTube and widgets. Turning it off is always allowed; a row
+  // later swapped to other content keeps the column, but the snapshot drops it for non-eligible items.
   if (has('play_to_end')) {
     const on = playToEnd.normalizePlayToEnd(req.body.play_to_end);
-    if (on) {
+    if (on && !item.widget_id) {
       const c = item.content_id ? db.prepare('SELECT mime_type FROM content WHERE id = ?').get(item.content_id) : null;
-      if (!c || !playToEnd.appliesTo(c.mime_type)) return res.status(400).json({ error: 'play_to_end applies to YouTube items only' });
+      if (!c || !playToEnd.appliesTo(c.mime_type)) return res.status(400).json({ error: 'play_to_end applies to YouTube and widgets only' });
     }
     updates.push('play_to_end = ?'); values.push(on);
   }
@@ -2428,7 +2428,7 @@ router.post('/:id/items/selection', requirePlaylistWrite, (req, res) => {
     if (action === 'play_to_end') {
       const on = playToEnd.normalizePlayToEnd(req.body.play_to_end);
       const mimeOf = db.prepare('SELECT mime_type FROM content WHERE id = ?');
-      const target = rows.filter((r) => r.content_id && playToEnd.appliesTo((mimeOf.get(r.content_id) || {}).mime_type));
+      const target = rows.filter((r) => (r.content_id && playToEnd.appliesTo((mimeOf.get(r.content_id) || {}).mime_type)) || r.widget_id);
       const up = db.prepare("UPDATE playlist_items SET play_to_end = ?, updated_at = strftime('%s','now') WHERE id = ?");
       db.transaction(() => { for (const r of target) up.run(on, r.id); })();
       if (target.length) markDraft(req.params.id, req, `Set play to end on ${target.length} item(s)`);

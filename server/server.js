@@ -1,4 +1,4 @@
-// FIRST of all: 3.0 refuses to start below engines.node (lib/node-guard.js explains why).
+﻿// FIRST of all: 3.0 refuses to start below engines.node (lib/node-guard.js explains why).
 require('./lib/node-guard').guardNode();
 
 /*
@@ -207,7 +207,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/player') || req.path.startsWith('/view/') || req.path.startsWith('/listen/')) {
     res.removeHeader('Content-Security-Policy');
     // Ensure YouTube embed & CDN (googlevideo.com) receive valid referer origin and postMessage channels
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Referrer-Policy', 'origin');
     res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     return next();

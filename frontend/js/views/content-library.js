@@ -1,4 +1,4 @@
-import { api, assertLocalCallAllowed } from '../api.js';
+﻿import { api, assertLocalCallAllowed } from '../api.js';
 import * as gettingStarted from '../components/getting-started.js';
 import { showToast } from '../components/toast.js';
 import { esc, hydrateAuthImages } from '../utils.js';
@@ -1257,8 +1257,25 @@ function showEditModal(contentItem, onSave, { focus = null } = {}) {
         </div>
         ${isRemote ? `
         <div class="form-group">
-          <label>${t('content.label_remote_url_field')}</label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>${t('content.label_remote_url_field')}</span>
+            ${isYoutube ? `<span style="font-size:11px;color:var(--primary);font-weight:500">Dica Smart TV / Compatibilidade</span>` : ''}
+          </label>
           <input type="text" id="editRemoteUrl" class="input" value="${esc(contentItem.remote_url)}">
+          ${isYoutube ? `
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:10px;margin-top:8px;font-size:12px;line-height:1.4">
+            <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px">📺 Compatibilidade com Smart TVs (TCL, LG, Samsung, etc.):</div>
+            <div style="color:var(--text-secondary);margin-bottom:6px">Se a Smart TV exibir <em>"Este vídeo não está disponível"</em>, geralmente é por causa do parâmetro <code>enablejsapi=1</code> ou cookies bloqueados no navegador da TV.</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+              <button type="button" class="btn btn-secondary btn-xs" id="btnTvSafeYoutube" style="font-size:11px;padding:3px 8px">
+                ⚡ Aplicar formato compatível com Smart TV
+              </button>
+              <button type="button" class="btn btn-secondary btn-xs" id="btnCleanNocookie" style="font-size:11px;padding:3px 8px">
+                🛡️ Usar youtube-nocookie
+              </button>
+            </div>
+          </div>
+          ` : ''}
         </div>
         ` : ''}
         <div class="form-group">
@@ -1395,6 +1412,34 @@ function showEditModal(contentItem, onSave, { focus = null } = {}) {
   overlay.querySelector('#closeEditModal').onclick = () => closeEdit();
   overlay.querySelector('#cancelEditBtn').onclick = () => closeEdit();
   overlay.onclick = (e) => { if (e.target === overlay) closeEdit(); };
+
+  // Ações rápidas de compatibilidade com Smart TV
+  const btnTvSafe = overlay.querySelector('#btnTvSafeYoutube');
+  if (btnTvSafe) {
+    btnTvSafe.onclick = () => {
+      const input = overlay.querySelector('#editRemoteUrl');
+      if (!input) return;
+      const val = input.value.trim();
+      const m = val.match(/(?:embed\/|v=|vi\/|youtu\.be\/|\/v\/)([a-zA-Z0-9_-]{11})/);
+      const vid = m ? m[1] : '';
+      if (vid) {
+        input.value = `https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1`;
+        input.style.borderColor = 'var(--primary)';
+      }
+    };
+  }
+  const btnNocookie = overlay.querySelector('#btnCleanNocookie');
+  if (btnNocookie) {
+    btnNocookie.onclick = () => {
+      const input = overlay.querySelector('#editRemoteUrl');
+      if (!input) return;
+      let val = input.value.trim();
+      // Troca www.youtube.com por www.youtube-nocookie.com e remove enablejsapi
+      val = val.replace('www.youtube.com', 'www.youtube-nocookie.com').replace('&enablejsapi=1', '').replace('enablejsapi=1&', '');
+      input.value = val;
+      input.style.borderColor = 'var(--primary)';
+    };
+  }
 
   // 3.0 accessibility: "Generate captions" (only when the workspace has a speech-to-text endpoint;
   // otherwise one sentence says why it is not offered) and "Edit captions".
