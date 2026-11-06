@@ -1,4 +1,4 @@
-﻿// FIRST of all: 3.0 refuses to start below engines.node (lib/node-guard.js explains why).
+// FIRST of all: 3.0 refuses to start below engines.node (lib/node-guard.js explains why).
 require('./lib/node-guard').guardNode();
 
 /*
@@ -1673,7 +1673,7 @@ app.use('/api/trust/org-deletion', rateLimit(60000, 10));
  * requests it takes to get there. What must stay tight is SESSION CREATION, which is the thing
  * that actually allocates disk, and that keeps the 30/min budget below.
  */
-const contentLimiter = rateLimit(60000, 30);           // 30 content operations per minute
+const contentLimiter = rateLimit(60000, 300);          // 300 content operations per minute (suporte a uploads em lote)
 const uploadSessionLimiter = rateLimit(60000, 1200);   // chunk traffic for an already-open session
 app.use('/api/content', (req, res, next) => {
   // Operations on an OPEN session (chunk PATCH, offset GET, DELETE, finalize) — never creation,
