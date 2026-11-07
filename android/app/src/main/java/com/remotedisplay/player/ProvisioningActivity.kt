@@ -59,6 +59,7 @@ class ProvisioningActivity : AppCompatActivity() {
     companion object {
         // How long to sit on "Connecting to server…" before assuming the URL is wrong.
         private const val CONNECT_TIMEOUT_MS = 60_000L
+        const val DEFAULT_SERVER_URL = "https://player.arcotech.api.br"
     }
 
     private val connection = object : ServiceConnection {
@@ -108,6 +109,8 @@ class ProvisioningActivity : AppCompatActivity() {
             serverUrlInput.setText(passedUrl)
         } else if (config.serverUrl.isNotEmpty()) {
             serverUrlInput.setText(config.serverUrl)
+        } else {
+            serverUrlInput.setText(DEFAULT_SERVER_URL)
         }
 
         findViewById<Button>(R.id.languageBtn)?.setOnClickListener {
@@ -115,7 +118,11 @@ class ProvisioningActivity : AppCompatActivity() {
         }
 
         connectBtn.setOnClickListener {
-            val raw = serverUrlInput.text.toString().trim()
+            var raw = serverUrlInput.text.toString().trim()
+            if (raw.isEmpty()) {
+                raw = DEFAULT_SERVER_URL
+                serverUrlInput.setText(raw)
+            }
             val url = ServerConfig.normalizeUrl(raw)
             if (url.isEmpty()) {
                 statusText.text = "Please enter the server URL"
