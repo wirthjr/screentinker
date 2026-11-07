@@ -410,6 +410,8 @@ export const api = {
    * write-only: it is sent on create/update and never comes back — rows carry has_password.
    */
   deviceWifi: (deviceId) => request(`/device-wifi/${deviceId}`),
+  deviceLed: (deviceId) => request(`/device-led/${deviceId}`),
+  updateDeviceLed: (deviceId, body) => request(`/device-led/${deviceId}`, { method: 'PUT', body: JSON.stringify(body ?? {}) }),
   addDeviceWifiNetwork: (deviceId, body) => request(`/device-wifi/${deviceId}/networks`,
     { method: 'POST', body: JSON.stringify(body ?? {}) }),
   updateDeviceWifiNetwork: (deviceId, id, body) => request(`/device-wifi/${deviceId}/networks/${id}`,
@@ -955,6 +957,10 @@ export const api = {
   createWorkspace: (data) => request('/workspaces', { method: 'POST', body: JSON.stringify(data ?? {}) }),
   renameWorkspace: (id, data) => request(`/workspaces/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   updateWorkspaceSecuritySettings: (workspaceId, data) => request(`/workspaces/${workspaceId}/security-settings`, { method: 'PUT', body: JSON.stringify(data) }),
+  // #790 live field patch (beta) org toggle, set through the workspace's org.
+  setLiveFieldPatch: (workspaceId, liveFieldPatch) => request(`/workspaces/${workspaceId}/live-field-patch`, { method: 'PUT', body: JSON.stringify({ liveFieldPatch }) }),
+  // Org-wide default PDF import resolution (longest edge in px); set through the workspace's org.
+  setPdfRenderResolution: (workspaceId, pdfMaxEdge) => request(`/workspaces/${workspaceId}/pdf-settings`, { method: 'PUT', body: JSON.stringify({ pdfMaxEdge }) }),
 
   // Workspace members + invites (slice 2A read-only)
   getWorkspaceMembers: (id) => request(`/workspaces/${id}/members`),
@@ -990,6 +996,7 @@ export const api = {
   getPromotion: () => request('/subscription/promotion'),
   adminOverview: () => request('/admin/overview'),
   adminHost: () => request('/admin/host'),
+  adminTraffic: (days) => request(`/admin/traffic?days=${encodeURIComponent(days)}`),
   adminAttention: (item) => request(`/admin/overview/attention/${encodeURIComponent(item)}`),
   adminStaleAccounts: (days) => request(`/admin/cleanup/stale-accounts?days=${encodeURIComponent(days)}`),
   adminPurgeStale: (body) => request('/admin/cleanup/stale-accounts', { method: 'POST', body: JSON.stringify(body) }),

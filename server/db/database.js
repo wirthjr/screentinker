@@ -3468,6 +3468,30 @@ const migrations = [
   // Every path that deletes content takes the copies' rows with it; the files go in the orphan sweep.
   `CREATE TRIGGER IF NOT EXISTS trg_content_video_variants_content_del AFTER DELETE ON content
      BEGIN DELETE FROM content_video_variants WHERE content_id = OLD.id; END`,
+  /* Server-approved intrinsic-size copies for legacy SSSP3 media planes. */
+  `CREATE TABLE IF NOT EXISTS sssp3_fit_renditions (
+     id TEXT PRIMARY KEY,
+     content_id TEXT NOT NULL,
+     workspace_id TEXT NOT NULL,
+     source_file TEXT NOT NULL,
+     source_revision INTEGER NOT NULL DEFAULT 0,
+     fit TEXT NOT NULL CHECK (fit IN ('contain','cover','fill')),
+     width INTEGER NOT NULL,
+     height INTEGER NOT NULL,
+     output_ext TEXT NOT NULL,
+     status TEXT NOT NULL CHECK (status IN ('queued','running','ready','failed','evicted')),
+     filepath TEXT,
+     file_size INTEGER,
+     error TEXT,
+     attempts INTEGER NOT NULL DEFAULT 0,
+     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+     updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+     last_used_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+     UNIQUE (content_id, source_file, fit, width, height))`,
+  'CREATE INDEX IF NOT EXISTS idx_sssp3_fit_status ON sssp3_fit_renditions(status, created_at)',
+  'CREATE INDEX IF NOT EXISTS idx_sssp3_fit_content ON sssp3_fit_renditions(content_id)',
+  `CREATE TRIGGER IF NOT EXISTS trg_sssp3_fit_content_del AFTER DELETE ON content
+     BEGIN DELETE FROM sssp3_fit_renditions WHERE content_id = OLD.id; END`,
   `CREATE TABLE IF NOT EXISTS video_variant_usage (
      organization_id TEXT NOT NULL,
      month TEXT NOT NULL,
@@ -4506,6 +4530,14 @@ migrationStep('workspace and organization settings', () => {
   try { db.prepare('ALTER TABLE storage_profiles ADD COLUMN workspace_id TEXT').run(); } catch (_) { /* present */ }
   try { db.prepare('ALTER TABLE organizations ADD COLUMN storage_workspace_choice INTEGER NOT NULL DEFAULT 0').run(); } catch (_) { /* present */ }
   try { db.prepare('ALTER TABLE storage_migrations ADD COLUMN workspace_id TEXT').run(); } catch (_) { /* present */ }
+  // #790 live field patch (beta, default off): when on, a data-source field change patches the
+  // field in the live widget iframe instead of reloading the whole slide. Gating lives server-side
+  // (markers + patch agent at render time, field deltas at push time); off = exactly today's reload.
+  try { db.prepare('ALTER TABLE organizations ADD COLUMN live_field_patch INTEGER NOT NULL DEFAULT 0').run(); console.log('[migrate] organizations.live_field_patch added (default 0)'); } catch (_) { /* present */ }
+  // PDF import render resolution: the longest edge (px) each PDF page is rasterised to in the
+  // uploader's browser (frontend/js/components/pdf-pages.js). Default 1920 (full HD) keeps existing
+  // behaviour; an org admin can raise it (e.g. 3840 for 4K wall) without patching the client.
+  try { db.prepare('ALTER TABLE organizations ADD COLUMN pdf_max_edge INTEGER NOT NULL DEFAULT 1920').run(); console.log('[migrate] organizations.pdf_max_edge added (default 1920)'); } catch (_) { /* present */ }
 });
 
 migrationStep('smart playlists', () => {
@@ -5291,6 +5323,40 @@ migrationStep('#720 device Wi-Fi networks', () => {
   // NULL = an older or non-Android player, about which the dashboard says nothing. capture_mode style.
   try { db.prepare('ALTER TABLE devices ADD COLUMN wifi_mode TEXT').run(); console.log('[migrate] devices.wifi_mode added'); } catch (_) { /* present */ }
   try { db.prepare('ALTER TABLE devices ADD COLUMN air_touch_enabled INTEGER NOT NULL DEFAULT 0').run(); console.log('[migrate] devices.air_touch_enabled added'); } catch (_) { /* present */ }
+});
+
+migrationStep('platform traffic ledger', () => {
+  // lib/traffic-ledger.js: bandwidth this server serves (attributed) and the NIC's own counters.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS traffic_hourly (
+      hour INTEGER NOT NULL, node TEXT NOT NULL, category TEXT NOT NULL, workspace_id TEXT NOT NULL DEFAULT '',
+      requests INTEGER NOT NULL DEFAULT 0, bytes_in INTEGER NOT NULL DEFAULT 0, bytes_out INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (hour, node, category, workspace_id)
+    );
+    CREATE TABLE IF NOT EXISTS traffic_daily (
+      day TEXT NOT NULL, node TEXT NOT NULL, category TEXT NOT NULL, workspace_id TEXT NOT NULL DEFAULT '',
+      requests INTEGER NOT NULL DEFAULT 0, bytes_in INTEGER NOT NULL DEFAULT 0, bytes_out INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (day, node, category, workspace_id)
+    );
+    CREATE TABLE IF NOT EXISTS traffic_device_daily (
+      day TEXT NOT NULL, node TEXT NOT NULL, device_id TEXT NOT NULL, workspace_id TEXT NOT NULL DEFAULT '',
+      requests INTEGER NOT NULL DEFAULT 0, bytes_in INTEGER NOT NULL DEFAULT 0, bytes_out INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (day, node, device_id)
+    );
+    CREATE TABLE IF NOT EXISTS host_traffic_hourly (
+      hour INTEGER NOT NULL, node TEXT NOT NULL, iface TEXT NOT NULL,
+      rx_bytes INTEGER NOT NULL DEFAULT 0, tx_bytes INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (hour, node, iface)
+    );
+  `);
+});
+
+migrationStep('LED screen remote settings', () => {
+  // lib/embedded-led-config.js. led_config: what the operator set (JSON, NULL = defaults).
+  // led_state: what the firmware last reported (effective power limit, learned limit, brownouts).
+  try { db.prepare('ALTER TABLE devices ADD COLUMN led_config TEXT').run(); console.log('[migrate] devices.led_config added'); } catch (_) { /* present */ }
+  try { db.prepare('ALTER TABLE devices ADD COLUMN led_state TEXT').run(); } catch (_) { /* present */ }
+  try { db.prepare('ALTER TABLE devices ADD COLUMN led_state_at INTEGER').run(); } catch (_) { /* present */ }
 });
 
 migrationStep('#796 library folders for widgets, playlists and schedules', () => {

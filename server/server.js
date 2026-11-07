@@ -77,6 +77,9 @@ const { getClientIp } = require('./services/activity');
 // non-trusted source is ignored, so the value can't be spoofed.
 app.set('trust proxy', trustedProxies);
 // Before parsers, CORS, limiters and routes so their rejections are recorded too.
+// Bandwidth served, per category / workspace / device, for the platform Traffic page (lib/traffic-ledger.js).
+// First, so it sees every response; it only reads the socket's byte counters, never the body.
+app.use(require('./lib/traffic-ledger').middleware());
 if (config.accessLogEnabled) app.use(accessLogger({ getClientIp }));
 
 // Determine if SSL certs are available
@@ -213,6 +216,11 @@ app.use((req, res, next) => {
     return next();
   }
   if (req.path === '/docs') return exempt(); // Redoc API reference needs a relaxed CSP
+  // #flash: the ESP32 web-serial firmware installer (frontend/flash/) is René's esp-web-tools page,
+  // vendored in. Like /player it is inline-script HTML (plus a wasm flasher and Web Serial), none of
+  // which the dashboard's `script-src 'self'` allows, so it needs the relaxed policy. Covers its
+  // assets too (manifests, firmware .bin, the vendored esp-web-tools module) - harmless for static files.
+  if (req.path === '/flash' || req.path.startsWith('/flash/')) return exempt();
   if (req.path.startsWith('/api/widgets/') && req.path.endsWith('/render')) return exempt();
   if (req.path.startsWith('/api/widgets/') && req.path.endsWith('/data.json')) return exempt();
   if (req.path.startsWith('/api/widgets/preview-session/')) return exempt();
@@ -730,6 +738,13 @@ app.get(['/solutions', '/solutions/'], (req, res) => {
 
 // Express 5 (send 1.x) ignores dotfile paths by default: certbot webroot needs this mount.
 app.use('/.well-known/acme-challenge', express.static(path.join(config.frontendDir, '.well-known', 'acme-challenge'), { index: false }));
+// #flash: serve the ESP32 web-serial installer at a clean /flash URL. express.static below is
+// index:false, so the directory URL would 404 without this; the page's assets (manifests, firmware
+// .bin, vendored esp-web-tools) are served by express.static as ordinary files. CSP was already
+// relaxed for this path by the exempt middleware above.
+app.get(['/flash', '/flash/'], (req, res) => {
+  res.sendFile(path.join(config.frontendDir, 'flash', 'index.html'));
+});
 // Serve frontend static files
 // JS/CSS/HTML: no-cache (always revalidate, uses ETag/304)
 // Images/fonts/icons: long cache for Cloudflare + browser
@@ -1848,6 +1863,30 @@ app.get('/api/content/:id/file', (req, res) => {
 });
 
 /*
+ * A completed, server-approved intrinsic-size copy for legacy SSSP3 panels.
+ * This endpoint is deliberately read-only: payload construction is the only
+ * path that may approve/queue a rendition, so arbitrary public requests never
+ * spend CPU or allocate persistent files.
+ */
+app.get('/api/content/:id/sssp3-fit/:renditionId', (req, res) => {
+  const { db } = require('./db/database');
+  const content = db.prepare('SELECT * FROM content WHERE id = ?').get(req.params.id);
+  if (!content) return res.status(404).json({ error: 'Content not found' });
+  if (!isReferencedForPlayers(db, content) && !requesterCanAccessContent(req, content)) {
+    return res.status(403).json({ error: 'Content not assigned to any playlist or widget' });
+  }
+  const file = require('./lib/sssp3-fit-rendition').resolveReady(content.id, req.params.renditionId);
+  if (!file) return res.status(404).json({ error: 'Rendition not ready' });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  // This is a player-gated derivative. Do not let a shared cache continue
+  // serving it after assignment or authorization has changed.
+  res.setHeader('Cache-Control', 'private, no-store');
+  hardenUploadResponse(res, file);
+  return res.sendFile(file);
+});
+
+/*
  * Previewing a bundle from the dashboard, before it is assigned to anything.
  *
  * ⚠️ THIS EXISTS BECAUSE THE PUBLIC ROUTE CANNOT ANSWER IT. /bundle is gated on the content being
@@ -2889,6 +2928,7 @@ app.use('/media', require('./routes/media'));
 const setupWebSockets = require('./ws');
 const { deviceNs, dashboardNs } = setupWebSockets(io);
 app.set('io', io);
+require('./lib/traffic-ledger').start(require('./db/database').db, { io });   // once-a-minute flush + NIC sample
 require('./lib/screen-share').init(io);   // 3.0: screen share — reaches the screens over /device
 
 // Start heartbeat checker
@@ -2939,6 +2979,13 @@ require('./lib/cloud-folders').start(io);   // SharePoint/OneDrive folder syncs
 // 3.0 TV-safe video copies: resume the queue (lib/video-variants.js). A finished copy re-sends the
 // payload of every screen playing that video, so it switches to the copy without a reboot.
 require('./lib/video-variants').start({
+  push: (deviceIds) => {
+    const { buildPlaylistPayload } = require('./ws/deviceSocket');
+    const commandQueue = require('./lib/command-queue');
+    for (const id of new Set(deviceIds || [])) commandQueue.queueOrEmitPlaylistUpdate(io.of('/device'), id, buildPlaylistPayload);
+  },
+});
+require('./lib/sssp3-fit-rendition').start({
   push: (deviceIds) => {
     const { buildPlaylistPayload } = require('./ws/deviceSocket');
     const commandQueue = require('./lib/command-queue');
@@ -3525,6 +3572,56 @@ app.get('/tizen/ScreenTinker.wgt', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(wgt.path);
 });
+
+// ==================== Samsung SSSP3 (Orsay) native install ====================
+// The legacy SSSP3 platform (pre-Tizen WebKit build) has no web-page launcher; it
+// polls an entered URL for sssp_config.xml, downloads the named package and runs it
+// from local storage. Our player package source lives in samsung-sssp3/ (build it
+// with samsung-sssp3/build-sssp3.sh). Deployables are resolved like the Tizen .wgt:
+// an operator mount /data/ScreenTinkerSSSP3.zip, a repo-root drop, then the local
+// dev build. The manifest unit is BYTES on this platform (not the Tizen kilobytes).
+const sssp3Cache = require('./lib/sssp3-package-cache');
+
+function sssp3NotAvailable(res) {
+  return res.status(404).send('<!DOCTYPE html><html><head><title>SSSP3 Player Not Available</title>'
+    + '<style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0}div{text-align:center;max-width:520px;padding:24px}h1{color:#f87171;font-size:24px}code{background:#1e293b;padding:2px 8px;border-radius:4px;font-size:14px}p{line-height:1.6;color:#94a3b8}</style></head>'
+    + '<body><div><h1>SSSP3 Player Not Available</h1><p>No ready <code>ScreenTinkerSSSP3.zip</code> is hosted on this instance. Build it with <code>samsung-sssp3/build-sssp3.sh</code>; for an externally mounted ZIP, also set matching integer <code>SSSP3_WGT_VER</code>.</p></div></body></html>');
+}
+
+app.get('/sssp3/sssp_config.xml', (req, res) => {
+  const pkg = sssp3Cache.get();
+  if (!pkg.exists) return sssp3NotAvailable(res);
+  res.setHeader('Content-Type', 'text/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(sssp3Cache.sssp3ConfigXml(pkg));
+});
+
+app.get('/sssp3/ScreenTinkerSSSP3.zip', (req, res) => {
+  const pkg = sssp3Cache.get();
+  if (!pkg.exists) return sssp3NotAvailable(res);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(pkg.path);
+});
+
+// Human-facing landing (a panel appends /sssp_config.xml itself, so it never lands here).
+app.get(['/sssp3', '/sssp3/'], (req, res) => {
+  const pkg = sssp3Cache.get();
+  const base = '/sssp3';
+  if (!pkg.exists) return sssp3NotAvailable(res);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.type('text/plain').send(
+    'ScreenTinker SSSP3 native player\n'
+    + `version: ${pkg.version} (integer, installs move upward)\n`
+    + `bytes: ${pkg.size}\n`
+    + `manifest: ${base}/sssp_config.xml\n`
+    + `package: ${base}/ScreenTinkerSSSP3.zip\n`
+    + 'On the panel enter this URL under URL Launcher: '
+    + `<entry-host>${base}</entry-host>`
+  );
+});
+
+sssp3Cache.start();
 
 // ---- LG webOS Signage ------------------------------------------------------------------------
 // The shell app (webos/) is installed from USB or an SI server and then keeps itself current

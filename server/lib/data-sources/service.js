@@ -212,6 +212,8 @@ async function syncDataSourceRow(row, force) {
     const doneSec = Math.floor(Date.now() / 1000);
     const cachedJson = JSON.stringify(resolvedData);
     const dataChanged = !row.cached_data || cachedJson !== row.cached_data;
+    const keysChanged = dataChanged ? changedKeys(row.cached_data, resolvedData) : [];
+    let slidesUpdated = 0;
 
     if (dataChanged) {
       // Data changed: update cached data and advance updated_at
@@ -221,7 +223,11 @@ async function syncDataSourceRow(row, force) {
         WHERE id = ?
       `).run(cachedJson, doneSec, doneSec, row.id);
 
-      bumpDependentWidgets(row, doneSec);
+      // #790: for live field patch, the scalar new values of the changed keys (null on a first fill,
+      // so those widgets just reload). See scalarFieldDeltas for the keying and what it leaves out.
+      const deltaFields = row.cached_data ? scalarFieldDeltas(row.slug, keysChanged, resolvedData) : null;
+      // Only the widgets that SHOW a changed field (#790). A first fill (no previous cache) moves them all.
+      slidesUpdated = bumpDependentWidgets(row, doneSec, row.cached_data ? keysChanged : null, deltaFields).length;
     } else {
       // Data did not change: update heartbeat/fetch timestamp only, do not defeat immutable cache
       db.prepare(`
@@ -240,7 +246,9 @@ async function syncDataSourceRow(row, force) {
       updated_at: dataChanged ? doneSec : row.updated_at,
       data: resolvedData,
       changed: dataChanged,
-      changed_keys: dataChanged ? changedKeys(row.cached_data, resolvedData) : [],
+      changed_keys: keysChanged,
+      // Widgets that got a new revision, i.e. will reload on the screens playing them.
+      slides_updated: slidesUpdated,
     };
   } catch (err) {
     console.warn(`[data-sources] Sync failed for "${row.name}" (${row.id}): ${err.message}`);
@@ -371,6 +379,42 @@ function describeSyncError(err) {
 }
 
 /*
+ * Does this widget config show any of the `changed` top-level keys of source `slugLower`?
+ *
+ * #790: an API that stamps "state as of <now>" on every call changed the cached data on every
+ * sync, and every slide bound to the source reloaded even though it never showed that field. A
+ * `{{ds:slug.key}}` tag reads exactly one top-level key (slide-render.js interpolateDataSources,
+ * same key pattern as TAG_KEY_RE), so a widget whose tags all name unchanged keys has nothing new
+ * to draw and keeps its revision.
+ *
+ * Anything we cannot see field by field moves on ANY change, as before:
+ *   - `changed` null (first fill, delete, slug rename) or at the changedKeys cap (the list is cut
+ *     short, so a shown key may be missing from it);
+ *   - a whole-source binding (`"slug":"<slug>"`: template ds_refs, table and menu bindings);
+ *   - a `{{ds:slug.` that is not a plain `{{ds:slug.key}}` tag.
+ */
+const TAG_KEY_RE = /^[a-zA-Z0-9_]+\}\}/;
+function showsChange(config, slugLower, changed) {
+  const cfg = String(config);
+  const lower = cfg.toLowerCase();
+  const tag = `{{ds:${slugLower}.`;
+  const whole = lower.includes(`"slug":"${slugLower}"`);
+  if (!whole && !lower.includes(tag)) return false;
+  if (changed == null || changed.length >= MAX_CHANGED_KEYS || whole) return true;
+  // A toLowerCase that changed the length (some non-ASCII letters) would misalign the indexes below.
+  if (lower.length !== cfg.length) return true;
+  const keys = new Set(changed);
+  // Indexes come from the lowercased copy; the key itself is read from the original, because the
+  // resolver looks keys up case-sensitively (`Temp` and `temp` are different fields).
+  for (let i = lower.indexOf(tag); i !== -1; i = lower.indexOf(tag, i + tag.length)) {
+    const m = TAG_KEY_RE.exec(cfg.slice(i + tag.length, i + tag.length + 200));
+    if (!m) return true;
+    if (keys.has(m[0].slice(0, -2))) return true;
+  }
+  return false;
+}
+
+/*
  * Advance the revision of every widget bound to this source's slug, and push to the displays
  * playing them. widgets.updated_at IS the player's widget_rev (the snapshot copies it, the
  * device socket refreshes it at send time, the embedded cache keys on it), so this one write is
@@ -378,7 +422,25 @@ function describeSyncError(err) {
  * that changed data and by DELETE, which used to leave players on the deleted source's last
  * values indefinitely.
  */
-function bumpDependentWidgets(row, nowSec) {
+/*
+ * #790: the scalar field deltas to push for live patching, keyed EXACTLY as the slide's data-ds
+ * markers are (lowercased slug + exact key, since slugs match case-insensitively but keys do not).
+ * Only scalars: an object or array is a whole-source or list binding that cannot be patched node by
+ * node, so it is left out and its widgets take the normal rev reload. Returns null when nothing is
+ * patchable, which the caller reads as "no field-patch, just the reload".
+ */
+function scalarFieldDeltas(slug, keys, data) {
+  const slugLower = (slug || '').toLowerCase();
+  const out = {};
+  for (const k of keys || []) {
+    const v = data ? data[k] : undefined;
+    if (v === null || v === undefined || typeof v === 'object') continue;
+    out[`${slugLower}.${k}`] = String(v);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function bumpDependentWidgets(row, nowSec, changed = null, deltaFields = null) {
   try {
     const slugLower = (row.slug || '').toLowerCase();
     if (!slugLower || !row.workspace_id) return [];
@@ -390,8 +452,7 @@ function bumpDependentWidgets(row, nowSec) {
     // `{{ds:slug.` and not `{{ds:slug`: 'room' must not bump the widgets bound to 'room-b'.
     const dependentWidgets = candidateWidgets.filter(w => {
       if (!w.config) return false;
-      const cfg = w.config.toLowerCase();
-      return cfg.includes(`{{ds:${slugLower}.`) || cfg.includes(`"slug":"${slugLower}"`);
+      return showsChange(w.config, slugLower, changed);
     });
     if (dependentWidgets.length === 0) return [];
 
@@ -413,7 +474,24 @@ function bumpDependentWidgets(row, nowSec) {
           affectedDeviceIds.add(dId);
         }
       }
+      // #790: when the org has live field patch on and the change is a set of scalar field values,
+      // tell the ONLINE displays the new values so they can patch the field in place. The rev bump
+      // and playlist-update below still run, so offline devices, a cold reload and the immutable
+      // cache all stay correct; the patch only spares an online screen the visible slide reload.
+      let liveFieldPatch = false;
+      if (deltaFields && Object.keys(deltaFields).length) {
+        try {
+          const r = db.prepare('SELECT COALESCE(o.live_field_patch, 0) AS v FROM organizations o JOIN workspaces w ON w.organization_id = o.id WHERE w.id = ?').get(row.workspace_id);
+          liveFieldPatch = !!(r && r.v);
+        } catch (_) { liveFieldPatch = false; }
+      }
       for (const devId of affectedDeviceIds) {
+        if (liveFieldPatch) {
+          try {
+            const r = deviceNs.adapter.rooms.get(devId);
+            if (r && r.size > 0) deviceNs.to(devId).emit('device:field-patch', { rev: nowSec, widgetIds, fields: deltaFields });
+          } catch (_) { /* best effort; the playlist-update below is the reliable fallback */ }
+        }
         commandQueue.queueOrEmitPlaylistUpdate(deviceNs, devId, buildPlaylistPayload);
       }
     }
@@ -450,7 +528,9 @@ function getWorkspaceDataMapSync(workspaceId) {
 module.exports = {
   syncDataSource,
   bumpDependentWidgets,
+  showsChange,
   changedKeys,
+  scalarFieldDeltas,
   describeSyncError,
   notAllowedMessage,
   getWorkspaceDataMapSync,
