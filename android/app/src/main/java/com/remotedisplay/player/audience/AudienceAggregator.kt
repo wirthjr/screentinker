@@ -122,6 +122,9 @@ class AudienceAggregator(
     var item: ScreenItem = ScreenItem.NONE
     private var lastFrameMs: Long? = null
 
+    val hasPresentFaces: Boolean
+        get() = tracks.any { it.hits >= confirmFrames }
+
     /** The counting run new buckets belong to. Set a NEW one every time the camera (re)starts. */
     var segment: Int = 0
         set(v) { field = v.coerceIn(0, 9999); lastFrameMs = null }

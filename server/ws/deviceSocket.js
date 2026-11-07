@@ -767,6 +767,7 @@ function buildPlaylistPayloadUnchecked(deviceId, opts = {}) {
       d.local_api_enabled, d.local_api_secret,
       d.default_content_id, d.workspace_id, d.latitude, d.longitude,
       d.capabilities, d.platform, d.android_version, d.client_type,
+      d.air_touch_enabled,
       d.screen_width, d.screen_height, -- 3.0: which orientation version of a layout this screen gets
       d.id -- an experiment's per-screen variant condition (lib/local-conditions 'screens') needs it
       FROM devices d JOIN device_resolved_playlist r ON r.device_id = d.id
@@ -1238,6 +1239,10 @@ function buildPlaylistPayloadUnchecked(deviceId, opts = {}) {
    * missed the change still stops counting on its next payload.
    */
   assembled.audience = audience.payloadConfig(deviceId);
+  /*
+   * Air Touch virtual mouse camera tracking: rides every payload, governed by the database flag.
+   */
+  assembled.air_touch = !!(device?.air_touch_enabled);
   /*
    * 3.0 CAMPAIGNS (lib/campaign.js, docs/layouts-and-campaigns.md): a player that declares
    * layout.campaign also gets the structure — whole layouts switching with full-screen items — while

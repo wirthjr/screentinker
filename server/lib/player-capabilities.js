@@ -124,6 +124,8 @@ const CAPABILITIES = [
   'display.power_schedule',
   // remote view / control
   'remote.screenshot', 'remote.stream', 'remote.input',
+  /* Air Touch: virtual mouse cursor & touch simulation via camera/webcam hand tracking */
+  'input.air_touch',
   /* Voice: play the operator's audio (+ optional webcam) — one-way Talk / PA. Over the same go2rtc
    * path as remote.stream, in Opus. Brand-new, so NOT in any baseline: only a player new enough to
    * run the WebRTC audio subscriber declares it, and the dashboard shows the Talk control only for a

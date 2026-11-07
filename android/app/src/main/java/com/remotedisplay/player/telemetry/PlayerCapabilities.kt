@@ -164,10 +164,12 @@ object PlayerCapabilities {
                 if (com.remotedisplay.player.player.LiveInputPlayer.deviceHasInput(context)) caps += "playback.hdmi_in"
             } catch (_: Throwable) {}
 
-            // Audience counting: a camera this player could count with. A statement of ability only;
-            // whether it counts is the organization's switch, sent in the payload.
+            // Audience counting & Air Touch virtual mouse: a camera this player can interact with.
             try {
-                if (com.remotedisplay.player.audience.AudienceController.deviceHasCamera(context)) caps += "audience.camera"
+                if (com.remotedisplay.player.audience.AudienceController.deviceHasCamera(context)) {
+                    caps += "audience.camera"
+                    caps += "input.air_touch"
+                }
             } catch (_: Throwable) {}
 
             // Display power is asymmetric and only honest when BOTH halves exist. screen_off needs

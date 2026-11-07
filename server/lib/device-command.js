@@ -36,6 +36,7 @@ const ALLOWED_COMMANDS = Object.freeze([
    * the same as the other panel-specific commands here.
    */
   'refresh',
+  'air_touch',
   // #161 Tier-2 (owner-gated on the panel; STPolicy no-ops off-tier so a stray send is inert):
   'power_menu', 'lock_now', 'kiosk_lock', 'kiosk_unlock',
   'set_time', 'set_timezone', 'status_bar', 'block_uninstall', 'unblock_uninstall',
@@ -115,7 +116,8 @@ const LOCAL_API_COMMANDS = Object.freeze([
  * A JWT session is untouched: requireScope passes sessions straight through, as before.
  */
 const WRITE_SCOPE_COMMANDS = Object.freeze([
-  'refresh', 'screen_on', 'screen_off', 'set_volume', 'set_brightness',
+  'refresh',
+  'air_touch', 'screen_on', 'screen_off', 'set_volume', 'set_brightness',
 ]);
 
 /* The scope a token needs to send `type`. Unknown types answer 'full', so a typo never widens. */
@@ -293,7 +295,7 @@ function deliverCommand(deviceNs, device, type, payload, opts = {}) {
     try {
       if (require('./mesh/command-relay').relayToAttached(db, device.id, 'device:command', { type, payload: outPayload })) {
         return requestId ? { status: 'relayed', via: device.attached_node_id, id: requestId }
-                         : { status: 'relayed', via: device.attached_node_id };
+          : { status: 'relayed', via: device.attached_node_id };
       }
     } catch (e) { /* fall through to the queue */ }
   }
@@ -356,7 +358,7 @@ function validateCommand(type, payload) {
       }
     }
     if (p.headers !== undefined && p.headers !== null
-        && (typeof p.headers !== 'object' || Array.isArray(p.headers))) {
+      && (typeof p.headers !== 'object' || Array.isArray(p.headers))) {
       return { ok: false, error: 'http_request: headers must be an object' };
     }
     if (p.timeout_ms !== undefined && p.timeout_ms !== null) {

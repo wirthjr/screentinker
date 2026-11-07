@@ -855,6 +855,10 @@ router.put('/:id', (req, res) => {
   if (ignore_battery !== undefined) {
     updates.push('ignore_battery = ?'); values.push(ignore_battery ? 1 : 0);
   }
+  // Air Touch: virtual mouse camera hand tracking flag stored in database
+  if (req.body.air_touch_enabled !== undefined) {
+    updates.push('air_touch_enabled = ?'); values.push(req.body.air_touch_enabled ? 1 : 0);
+  }
   // #12 scheduled reboot: device-local "HH:MM" (null/'' clears -> off). Reset the
   // once-per-day guard on any change so a newly-set time can still fire later today.
   if (reboot_schedule !== undefined) {
@@ -995,9 +999,18 @@ router.put('/:id', (req, res) => {
      * one until it next reconnected. Push now (or queue for an offline screen). The group push
      * above already sent this screen a fresh payload when dynOps is set.
      */
-    const payloadFields = [orientation, timezone, background_color, default_content_id, layout_id];
+    const payloadFields = [orientation, timezone, background_color, default_content_id, layout_id, req.body.air_touch_enabled];
     if (!dynOps.length && payloadFields.some((v) => v !== undefined)) {
       groupRules.pushTo(req.app.get('io'), [req.params.id]);
+    }
+    if (req.body.air_touch_enabled !== undefined) {
+      try {
+        req.app.get('io')?.of('/device').to(req.params.id).emit('device:command', {
+          type: 'air_touch',
+          command: 'air_touch',
+          payload: { enabled: !!req.body.air_touch_enabled }
+        });
+      } catch (_) {}
     }
   }
 

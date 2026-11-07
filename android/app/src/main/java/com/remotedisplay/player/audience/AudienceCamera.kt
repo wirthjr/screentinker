@@ -36,7 +36,7 @@ import java.nio.ShortBuffer
  */
 class AudienceCamera(
     private val context: Context,
-    private val onFaces: (faces: List<FaceBox>, nowMs: Long) -> Unit,
+    private val onFaces: (faces: List<FaceBox>, hasMotion: Boolean, nowMs: Long) -> Unit,
     private val onError: (String) -> Unit,
 ) {
     private var thread: HandlerThread? = null
@@ -50,11 +50,14 @@ class AudienceCamera(
 
     // Reused working buffers: one grey frame, packed as RGB_565 for FaceDetector. Never persisted.
     private var luma = ByteArray(0)
+    private var prevLuma = ByteArray(0)
     private var rotated = ByteArray(0)
     private var packed = ShortArray(0)
     private var bitmap: Bitmap? = null
     private var detector: FaceDetector? = null
     private var sensorRotation = 0
+    private var activeRotation = -1
+    private var emptyFramesCount = 0
 
     /**
      * Never throws. getCameraCharacteristics, getOutputSizes and the like can throw on a device whose
@@ -88,11 +91,15 @@ class AudienceCamera(
             }
         } catch (_: Throwable) { 0 }
         val back = chars.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
-        sensorRotation = if (back) (sensor - display + 360) % 360 else (sensor + display) % 360
+        sensorRotation = if (back) (sensor - display + 360) % 360 else (360 - ((sensor + display) % 360)) % 360
+        activeRotation = -1
+        emptyFramesCount = 0
+        Log.i(TAG, "camera open: sensor=$sensor, display=$display, back=$back, calculatedRotation=$sensorRotation")
         val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: return onError("no stream config")
         val sizes = map.getOutputSizes(ImageFormat.YUV_420_888) ?: return onError("no YUV output")
-        // The smallest size that still leaves a face big enough to find at a few metres.
-        val size = sizes.filter { it.width >= 320 && it.height >= 240 }.minByOrNull { it.width * it.height }
+        // Target ~640x480 so faces at 1-3 metres have > 20px eye distance for FaceDetector
+        val size = sizes.filter { it.width in 640..1280 && it.height in 480..960 }.minByOrNull { it.width * it.height }
+            ?: sizes.filter { it.width >= 640 && it.height >= 480 }.minByOrNull { it.width * it.height }
             ?: sizes.maxByOrNull { it.width * it.height } ?: return onError("no usable size")
 
         val t = HandlerThread("audience-camera").also { it.start() }
@@ -143,7 +150,7 @@ class AudienceCamera(
         thread = null; handler = null
         try { t?.quitSafely() } catch (_: Throwable) {}
         // Nothing of the last frame survives the camera being switched off.
-        luma.fill(0); rotated.fill(0); packed.fill(0)
+        luma.fill(0); prevLuma.fill(0); rotated.fill(0); packed.fill(0)
         try { bitmap?.eraseColor(0) } catch (_: Throwable) {}
     }
 
@@ -163,9 +170,9 @@ class AudienceCamera(
         lastFrameMs = now
         val w: Int; val h: Int
         try {
-            // Luma only, downscaled by an integer step to about 320px wide.
+            // Luma only, downscaled to ~640px wide so faces at 1-3m have > 20px eye distance
             val plane = img.planes[0]
-            val step = (img.width / 320).coerceAtLeast(1)
+            val step = (img.width / 640).coerceAtLeast(1)
             w = (img.width / step) and 1.inv()            // FaceDetector needs an even width
             h = img.height / step
             if (luma.size != w * h) luma = ByteArray(w * h)
@@ -181,13 +188,89 @@ class AudienceCamera(
         } finally {
             try { img.close() } catch (_: Throwable) {}   // the camera's frame is gone from here on
         }
+        var hasMotion = false
+        if (prevLuma.size == w * h) {
+            var changed = 0
+            val totalSamples = (h / 8) * (w / 8)
+            for (y in 0 until h step 8) {
+                val row = y * w
+                for (x in 0 until w step 8) {
+                    val curr = luma[row + x].toInt() and 0xFF
+                    val prev = prevLuma[row + x].toInt() and 0xFF
+                    if (Math.abs(curr - prev) > 20) {
+                        changed++
+                    }
+                }
+            }
+            if (totalSamples > 0) {
+                val ratio = changed.toFloat() / totalSamples
+                hasMotion = ratio > 0.025f // >2.5% of sample points changed
+                if (hasMotion) Log.d(TAG, "motion detected: ${(ratio * 100).toInt()}% change")
+            }
+        } else {
+            prevLuma = ByteArray(w * h)
+        }
+        System.arraycopy(luma, 0, prevLuma, 0, w * h)
+
         val faces = detect(w, h)
-        try { onFaces(faces, System.currentTimeMillis()) } catch (e: Throwable) { Log.w(TAG, "aggregate: ${e.message}") }
+        try { onFaces(faces, hasMotion, System.currentTimeMillis()) } catch (e: Throwable) { Log.w(TAG, "aggregate: ${e.message}") }
     }
 
-    /** Upright the grey frame for the sensor's mounting, find faces, return normalised boxes. */
+    private class DetectionResult(val faces: List<FaceBox>, val maxConfidence: Float)
+
+    /** Find faces using primary expected rotation, falling back to alternative rotations if needed. */
     private fun detect(w0: Int, h0: Int): List<FaceBox> {
-        val rot = ((sensorRotation % 360) + 360) % 360
+        val primary = if (activeRotation >= 0) activeRotation else sensorRotation
+        val primaryRes = detectRotated(w0, h0, primary)
+        if (primaryRes.faces.isNotEmpty()) {
+            activeRotation = primary
+            emptyFramesCount = 0
+            return primaryRes.faces
+        }
+
+        emptyFramesCount++
+        // Don't search alternative rotations immediately on a single missed frame — wait for at least 3 misses
+        if (activeRotation >= 0 && emptyFramesCount < 3) {
+            return emptyList()
+        }
+
+        // Test candidate rotations and find the one with the strongest face
+        val candidates = listOf(
+            sensorRotation,
+            (sensorRotation + 90) % 360,
+            (sensorRotation + 270) % 360,
+            (sensorRotation + 180) % 360
+        ).filter { it != primary }
+
+        var bestRot = -1
+        var bestConf = 0f
+        var bestFaces = emptyList<FaceBox>()
+
+        for (rot in candidates) {
+            val res = detectRotated(w0, h0, rot)
+            if (res.faces.isNotEmpty() && res.maxConfidence > bestConf) {
+                bestRot = rot
+                bestConf = res.maxConfidence
+                bestFaces = res.faces
+            }
+        }
+
+        if (bestFaces.isNotEmpty() && bestConf >= 0.35f) {
+            Log.i(TAG, "Switching active rotation to $bestRot (conf=$bestConf, primary was $primary)")
+            activeRotation = bestRot
+            emptyFramesCount = 0
+            return bestFaces
+        }
+
+        if (emptyFramesCount > 8) {
+            activeRotation = -1
+        }
+        return emptyList()
+    }
+
+    /** Upright the grey frame for the given rotation, find faces, return normalised boxes. */
+    private fun detectRotated(w0: Int, h0: Int, rotDeg: Int): DetectionResult {
+        val rot = ((rotDeg % 360) + 360) % 360
         val (w, h) = if (rot == 90 || rot == 270) h0 to w0 else w0 to h0
         val ew = w and 1.inv()
         if (rotated.size != ew * h) rotated = ByteArray(ew * h)
@@ -217,19 +300,23 @@ class AudienceCamera(
         val n = try { detector!!.findFaces(bmp, found) } catch (e: Exception) { Log.w(TAG, "detect: ${e.message}"); 0 }
         val out = ArrayList<FaceBox>(n)
         val mid = PointF()
+        var maxConf = 0f
         for (i in 0 until n) {
             val f = found[i] ?: continue
-            if (f.confidence() < MIN_CONFIDENCE) continue
+            val conf = f.confidence()
+            if (conf > maxConf) maxConf = conf
+            if (conf < MIN_CONFIDENCE) continue
             f.getMidPoint(mid)
             // Width-normalised in both axes, so a box is square in the units the tracker compares.
             out += FaceBox(mid.x / ew, mid.y / ew, (f.eyesDistance() * 2.5f) / ew)
         }
-        return out
+        if (n > 0) Log.d(TAG, "rot=$rot: found $n, maxConf=$maxConf, valid=${out.size}")
+        return DetectionResult(out, maxConf)
     }
 
     companion object {
         private const val TAG = "AudienceCamera"
         private const val MAX_FACES = 10
-        private const val MIN_CONFIDENCE = 0.4f
+        private const val MIN_CONFIDENCE = 0.28f
     }
 }

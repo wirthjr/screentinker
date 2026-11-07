@@ -1857,7 +1857,7 @@ paths:
                   # asserts the two lists match: this one had already drifted, documenting six of
                   # the commands a 'full' token can actually send.
                   enum: [screen_on, screen_off, launch, update, reboot, shutdown,
-                         refresh,
+                         refresh, air_touch,
                          power_menu, lock_now, kiosk_lock, kiosk_unlock,
                          set_time, set_timezone, status_bar, block_uninstall, unblock_uninstall,
                          shell, install_apk,
@@ -1942,7 +1942,7 @@ paths:
                   type: string
                   # Same list as the group route above; see the note there.
                   enum: [screen_on, screen_off, launch, update, reboot, shutdown,
-                         refresh,
+                         refresh, air_touch,
                          power_menu, lock_now, kiosk_lock, kiosk_unlock,
                          set_time, set_timezone, status_bar, block_uninstall, unblock_uninstall,
                          shell, install_apk,

@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "br.com.arcosistemas.indoor"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 34
         // Env-overridable so device-owner reinstalls (which require an ever-increasing
         // versionCode — downgrades are blocked) don't churn this file each build.
@@ -156,6 +156,15 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // CameraX for Hand / Virtual Mouse Tracking
+    val cameraVersion = "1.3.1"
+    implementation("androidx.camera:camera-core:$cameraVersion")
+    implementation("androidx.camera:camera-camera2:$cameraVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraVersion")
+
+    // Google MediaPipe Tasks Vision for on-device hand tracking
+    implementation("com.google.mediapipe:tasks-vision:0.10.14")
 
     // #go2rtc — WebRTC for the Android live-video publisher (MediaProjection -> WebRTC sender).
     // stream-webrtc-android is the maintained successor to the abandoned org.webrtc:google-webrtc,

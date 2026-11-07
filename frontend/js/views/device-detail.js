@@ -1393,6 +1393,14 @@ async function loadDevice(deviceId, activeTab = null) {
               : '--'}</div>
           </div>
           <div class="info-card">
+            <div class="info-card-label">${t('device.info.camera')}</div>
+            <div class="info-card-value small">
+              ${(can('input.air_touch') || can('audience.camera') || device.has_camera)
+                ? `<span style="color:var(--success);font-weight:600">✓ ${t('device.camera.detected')}</span>`
+                : `<span style="color:var(--text-muted)">${t('device.camera.none')}</span>`}
+            </div>
+          </div>
+          <div class="info-card">
             <div class="info-card-label">${t('device.clock.label')}</div>
             <div class="info-card-value small">${renderDeviceClock(device)}</div>
           </div>
@@ -1782,6 +1790,17 @@ async function loadDevice(deviceId, activeTab = null) {
             </button>
             <span id="systemViewHint" style="font-size:10px;color:var(--text-muted);line-height:1.2;display:block;margin-top:4px">${t('device.remote.system_view_hint')}</span>` : ''}
             ${captureModeNotice(device)}`}
+            <!-- Air Touch: Controle por gestos (apenas botões de ação) -->
+            ${isAndroidDevice(device) || can('input.air_touch') || can('audience.camera') ? `
+            <hr style="border-color:var(--border);margin:8px 0">
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-primary btn-sm" style="flex:1;padding:6px 2px;font-size:11px;white-space:nowrap" onclick="window._sendAirTouch(true)" title="Ativar Mouse por Gestos (Air Touch)">
+                ${t('device.remote.air_touch_enable')}
+              </button>
+              <button class="btn btn-secondary btn-sm" style="flex:1;padding:6px 2px;font-size:11px;white-space:nowrap" onclick="window._sendAirTouch(false)" title="Desativar Air Touch">
+                ${t('device.remote.air_touch_disable')}
+              </button>
+            </div>` : ''}
           </div>
         </div>
       </div>` : ''}
@@ -1898,6 +1917,20 @@ async function loadDevice(deviceId, activeTab = null) {
       sendCommand(currentDevice.id, type, {}, (ack) => {
         if (ack && ack.reason === 'corporate') showToast(ack.error || t('corp.locked.title'), 'error');
       });
+    };
+    window._sendAirTouch = (enabled) => {
+      if (!currentDevice) return;
+      // 1. Persist flag in database for this device
+      api.updateDevice(currentDevice.id, { air_touch_enabled: enabled ? 1 : 0 })
+        .then(data => {
+          currentDevice.air_touch_enabled = enabled ? 1 : 0;
+          showToast(enabled ? 'Air Touch ativado no banco de dados e sincronizado' : 'Air Touch desativado no banco de dados', 'success');
+        })
+        .catch(err => {
+          showToast('Erro ao atualizar configuração: ' + err.message, 'error');
+        });
+      // 2. Also send real-time socket command for instant reaction
+      sendCommand(currentDevice.id, 'air_touch', { enabled: enabled });
     };
     window._enableSystemView = () => {
       if (!currentDevice) return;

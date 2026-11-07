@@ -5290,6 +5290,7 @@ migrationStep('#720 device Wi-Fi networks', () => {
   // What the player can do with them, from device_info (owner / direct / suggestions / unsupported).
   // NULL = an older or non-Android player, about which the dashboard says nothing. capture_mode style.
   try { db.prepare('ALTER TABLE devices ADD COLUMN wifi_mode TEXT').run(); console.log('[migrate] devices.wifi_mode added'); } catch (_) { /* present */ }
+  try { db.prepare('ALTER TABLE devices ADD COLUMN air_touch_enabled INTEGER NOT NULL DEFAULT 0').run(); console.log('[migrate] devices.air_touch_enabled added'); } catch (_) { /* present */ }
 });
 
 migrationStep('#796 library folders for widgets, playlists and schedules', () => {

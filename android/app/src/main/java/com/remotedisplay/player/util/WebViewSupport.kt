@@ -255,9 +255,9 @@ object WebViewSupport {
         // cleanly on landscape, instead of a 100%x100% landscape frame.
         val css = if (vertical)
             "html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center}" +
-            "iframe{display:block;height:100%;aspect-ratio:9/16;max-width:100%;border:0}"
+            "iframe{display:block;height:100%;aspect-ratio:9/16;max-width:100%;border:0;pointer-events:none}"
         else
-            "html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0}"
+            "html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}"
         return "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
             "<meta name=\"referrer\" content=\"strict-origin-when-cross-origin\">" +
             "<style>$css</style>" +

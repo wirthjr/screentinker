@@ -106,6 +106,8 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var siteCacheConfig: com.remotedisplay.player.data.SiteCacheConfig? = null
     // Audience counting (audience/AudienceController.kt): off unless the server's payload turns it on.
     private var audience: com.remotedisplay.player.audience.AudienceController? = null
+    private var handMouseCoordinator: com.remotedisplay.player.gesture.HandMouseCoordinator? = null
+    private var handMouseOverlay: com.remotedisplay.player.gesture.VirtualMouseOverlayView? = null
     private lateinit var pipLayout: FrameLayout       // #109: reparented above rootView (see onCreate)
     private var talkRenderer: org.webrtc.SurfaceViewRenderer? = null   // #talk video: operator webcam overlay
     private var screenShareOverlay: com.remotedisplay.player.remote.ScreenShareOverlay? = null   // 3.0 screen share
@@ -268,6 +270,19 @@ class MainActivity : AppCompatActivity() {
         (captureRoot as ViewGroup).addView(
             pipLayout,
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        )
+
+        // Air Touch / Hand-tracking virtual mouse overlay
+        val mouseOverlay = com.remotedisplay.player.gesture.VirtualMouseOverlayView(this)
+        handMouseOverlay = mouseOverlay
+        (captureRoot as ViewGroup).addView(
+            mouseOverlay,
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        )
+        handMouseCoordinator = com.remotedisplay.player.gesture.HandMouseCoordinator(
+            activity = this,
+            targetTouchView = rootView,
+            overlayView = mouseOverlay
         )
 
         // #109: PiP overlay layer. Reports show/clear over device:log (tag "pip"); rootView +
@@ -969,6 +984,17 @@ class MainActivity : AppCompatActivity() {
             }
             // Audience counting rides every payload; absent means OFF, so this runs before any early return.
             try { audience?.onPayload(data) } catch (e: Throwable) { Log.w("MainActivity", "audience adopt failed: ${e.message}") }
+            // Air Touch camera tracking: strictly obeys the flag configured in the database, unless Audience is active
+            val audienceActive = data.optJSONObject("audience")?.optBoolean("enabled", false) == true
+            val airTouchInPayload = !audienceActive && data.optBoolean("air_touch", false)
+            val isAirTouchRunning = handMouseCoordinator?.isRunning == true
+            if (airTouchInPayload != isAirTouchRunning) {
+                if (airTouchInPayload) {
+                    startAirTouch()
+                } else {
+                    stopAirTouch()
+                }
+            }
             /*
              * ⚠️ AND PIN WHAT THEY NEED — the comment above describes the WEB player's mechanism,
              * not this one. There, device-triggers.js appends trigger media to the same
@@ -1452,6 +1478,20 @@ class MainActivity : AppCompatActivity() {
                         addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
                     startActivity(intent)
+                }
+                "air_touch", "hand_mouse" -> {
+                    val enable = payload?.optBoolean("enabled", true) ?: true
+                    runOnUiThread {
+                        getSharedPreferences("screentinker_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("air_touch_enabled", enable)
+                            .apply()
+                        if (enable) {
+                            startAirTouch()
+                        } else {
+                            stopAirTouch()
+                        }
+                    }
                 }
                 "update" -> {
                     // FORCED: an operator aimed this at ONE device and is watching the screen.
@@ -1980,6 +2020,20 @@ class MainActivity : AppCompatActivity() {
                     handleBackTap()
                     return true  // consume — never let the system handle it
                 }
+                KeyEvent.KEYCODE_M, KeyEvent.KEYCODE_H -> {
+                    val isRunning = handMouseCoordinator?.isRunning == true
+                    val newState = !isRunning
+                    getSharedPreferences("screentinker_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putBoolean("air_touch_enabled", newState)
+                        .apply()
+                    if (newState) {
+                        startAirTouch()
+                    } else {
+                        stopAirTouch()
+                    }
+                    return true
+                }
             }
         }
         return super.dispatchKeyEvent(event)
@@ -2436,6 +2490,88 @@ class MainActivity : AppCompatActivity() {
             try { audience?.onPermissionResult(grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) }
             catch (e: Throwable) { Log.w("MainActivity", "audience permission result: ${e.message}") }
         }
+        if (requestCode == REQUEST_CODE_AIR_TOUCH) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                handMouseCoordinator?.start(this)
+                android.widget.Toast.makeText(this, "Air Touch: Câmera autorizada e ativada", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(this, "Permissão de câmera necessária para o Air Touch", android.widget.Toast.LENGTH_LONG).show()
+                showCameraDeniedDialog()
+            }
+        }
+    }
+
+    private fun hasCameraPermission(): Boolean =
+        android.os.Build.VERSION.SDK_INT < 23 ||
+            checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    fun checkAndRequestCameraPermission(onGranted: () -> Unit) {
+        if (hasCameraPermission()) {
+            onGranted()
+            return
+        }
+
+        // Silent grant for device-owner if available
+        val grantedByPolicy = try {
+            com.remotedisplay.player.admin.STPolicy(this).grantSelfPermission(android.Manifest.permission.CAMERA)
+        } catch (_: Throwable) { false }
+
+        if (grantedByPolicy && hasCameraPermission()) {
+            onGranted()
+            return
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Permissão de Câmera Necessária")
+                .setMessage("Para usar o controle por gestos (Air Touch) simulando o mouse pela câmera ou webcam, o aplicativo precisa de permissão de acesso à câmera.\n\nDeseja autorizar o uso da câmera agora?")
+                .setPositiveButton("Autorizar Câmera") { _, _ ->
+                    try {
+                        requestPermissions(arrayOf(android.Manifest.permission.CAMERA), REQUEST_CODE_AIR_TOUCH)
+                    } catch (e: Throwable) {
+                        Log.w("MainActivity", "Camera permission request failed: ${e.message}")
+                    }
+                }
+                .setNeutralButton("Abrir Configurações") { _, _ ->
+                    try {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                    } catch (_: Throwable) {}
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun showCameraDeniedDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Câmera Não Autorizada")
+            .setMessage("O acesso à câmera foi recusado. O recurso de controle por gestos (Air Touch) não pode funcionar sem a câmera.\n\nVocê pode conceder a permissão nas configurações do sistema.")
+            .setPositiveButton("Abrir Configurações") { _, _ ->
+                try {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = android.net.Uri.fromParts("package", packageName, null)
+                    }
+                    startActivity(intent)
+                } catch (_: Throwable) {}
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    fun startAirTouch() {
+        checkAndRequestCameraPermission {
+            handMouseCoordinator?.start(this)
+            android.widget.Toast.makeText(this, "Air Touch: Ativado", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun stopAirTouch() {
+        handMouseCoordinator?.stop()
+        android.widget.Toast.makeText(this, "Air Touch: Desativado", android.widget.Toast.LENGTH_SHORT).show()
     }
 
     override fun onStart() {
@@ -2511,6 +2647,8 @@ class MainActivity : AppCompatActivity() {
         if (::downloadCoordinator.isInitialized) downloadCoordinator.shutdown() // cancel in-flight downloads (no orphan/leak)
         zoneManager?.cleanup()
         wallZones?.stop()
+        try { handMouseCoordinator?.stop() } catch (_: Throwable) {}
+        handMouseCoordinator = null
         if (::pipOverlay.isInitialized) pipOverlay.clear(null) // #109: tear down overlay WebView
         if (::mediaPlayer.isInitialized) {
             stopScreenshotStreaming()
@@ -2549,6 +2687,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private companion object {
+        const val REQUEST_CODE_AIR_TOUCH = 4722
         // The routine refresh lands every ~60s with an unchanged playlist; a sweep then has nothing
         // new to decide, so it runs on a real change or at most this often.
         const val CACHE_SWEEP_EVERY_MS = 30L * 60 * 1000

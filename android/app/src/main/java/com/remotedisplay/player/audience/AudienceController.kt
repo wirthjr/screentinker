@@ -4,7 +4,12 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.PorterDuff
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
@@ -68,6 +73,9 @@ class AudienceController(
     private var indicator: ImageView? = null
     private var visible = false
     private var permissionAsked = false
+    private var isDetectingNow = false
+    private var lastSeenFaceTimeMs = 0L
+    private val retryHandler = Handler(Looper.getMainLooper())
     @Volatile private var item: ScreenItem = ScreenItem.NONE
 
     /** Every playlist payload. */
@@ -127,16 +135,39 @@ class AudienceController(
         val seg = AudienceLog.nextSegment(activity.applicationContext)
         synchronized(this) { aggregator?.segment = seg }
         camera = AudienceCamera(activity.applicationContext,
-            onFaces = { faces, now ->
+            onFaces = { faces, hasMotion, now ->
                 val done = synchronized(this) { aggregator?.onFrame(faces, now) } ?: emptyList()
+                val nowReal = SystemClock.elapsedRealtime()
+                val rawDetecting = faces.isNotEmpty() || hasMotion || (synchronized(this) { aggregator?.hasPresentFaces == true })
+                if (rawDetecting) {
+                    lastSeenFaceTimeMs = nowReal
+                }
+                val isDetecting = rawDetecting || (nowReal - lastSeenFaceTimeMs < 2000L)
+                updateIndicatorState(isDetecting)
                 if (done.isNotEmpty()) { AudienceLog.add(activity.applicationContext, done); onBuckets() }
             },
-            onError = { msg -> Log.w(TAG, "camera: $msg") },
+            onError = { msg ->
+                Log.w(TAG, "camera: $msg")
+                camera = null
+                updateIndicator()
+                if (visible && config != null) {
+                    retryHandler.removeCallbacksAndMessages(null)
+                    retryHandler.postDelayed({
+                        if (visible && config != null && camera?.running != true) {
+                            Log.i(TAG, "retrying audience camera...")
+                            startCamera()
+                        }
+                    }, 3000)
+                }
+            },
         ).also { it.start(cfg.fps) }
         updateIndicator()
     }
 
     private fun stopCamera(flush: Boolean) {
+        retryHandler.removeCallbacksAndMessages(null)
+        isDetectingNow = false
+        lastSeenFaceTimeMs = 0L
         try { camera?.stop() } catch (_: Throwable) {}
         camera = null
         if (flush) {
@@ -152,6 +183,28 @@ class AudienceController(
         updateIndicator()
     }
 
+    /** Changes camera icon color to yellow when a face is actively detected/counting. */
+    private fun updateIndicatorState(detecting: Boolean) {
+        if (detecting == isDetectingNow) return
+        isDetectingNow = detecting
+        Log.i(TAG, "audience indicator state: detecting=$detecting")
+        activity.runOnUiThread {
+            indicator?.let { iv ->
+                if (detecting) {
+                    iv.setColorFilter(Color.parseColor("#FFD600"), PorterDuff.Mode.SRC_IN)
+                    iv.alpha = 1.0f
+                    iv.scaleX = 1.25f
+                    iv.scaleY = 1.25f
+                } else {
+                    iv.clearColorFilter()
+                    iv.alpha = 0.55f
+                    iv.scaleX = 1.0f
+                    iv.scaleY = 1.0f
+                }
+            }
+        }
+    }
+
     /** A small camera icon in the corner while counting, unless the org turned it off. */
     private fun updateIndicator() {
         activity.runOnUiThread {
@@ -162,7 +215,16 @@ class AudienceController(
                 val margin = px / 3
                 indicator = ImageView(activity).apply {
                     setImageResource(android.R.drawable.ic_menu_camera)
-                    alpha = 0.55f
+                    if (isDetectingNow) {
+                        setColorFilter(Color.parseColor("#FFD600"), PorterDuff.Mode.SRC_IN)
+                        alpha = 1.0f
+                        scaleX = 1.25f
+                        scaleY = 1.25f
+                    } else {
+                        alpha = 0.55f
+                        scaleX = 1.0f
+                        scaleY = 1.0f
+                    }
                     contentDescription = "Audience counting is on"
                     layoutParams = FrameLayout.LayoutParams(px, px, Gravity.TOP or Gravity.END).apply { setMargins(margin, margin, margin, margin) }
                 }
