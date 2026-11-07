@@ -7,6 +7,7 @@
   "scripts": {
     "build:manifest": "node shared/Transitions/generate-manifest.js",
     "test:shaders": "node shared/Transitions/compile-test.js",
+    "deploy": "node ../deploy.js",
     "tunnel": "ssh -N -R 3001:localhost:3001 root@69.62.95.197",
     "tunnel:reverse": "ssh -N -R 0.0.0.0:3001:localhost:3001 root@69.62.95.197",
     "tunnel:local": "ssh -N -L 3001:localhost:3001 root@69.62.95.197",
