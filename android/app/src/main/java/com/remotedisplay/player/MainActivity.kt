@@ -342,9 +342,20 @@ class MainActivity : AppCompatActivity() {
         }.also { handler.postDelayed(it, 5000) }
 
         // Setup zone manager for multi-zone layouts
-        zoneManager = ZoneManager(this, rootView as FrameLayout) {
-            playlistController.onVideoComplete()
-        }
+        zoneManager = ZoneManager(
+            context = this,
+            container = rootView as FrameLayout,
+            onPlayLog = { event, cid, filename, durationSec, zoneId, layoutId ->
+                if (event == "play_start") {
+                    wsService?.sendPlayStart(cid, filename, durationSec, zoneId, layoutId)
+                } else if (event == "play_end") {
+                    wsService?.sendPlayEnd(cid, filename, true, zoneId, layoutId)
+                }
+            },
+            onAllVideosComplete = {
+                playlistController.onVideoComplete()
+            }
+        )
         campaignPlayer = CampaignPlayer(
             stage = rootView,
             zones = { zoneManager },

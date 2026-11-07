@@ -89,8 +89,9 @@ const PLAY_LOG_MIN_GAP_MS = 2000;
 const openPlayRow = new Map();
 const playKey = (contentId, widgetId) => `${contentId || ''}|${widgetId || ''}`;
 
-function rememberOpenPlay(deviceId, contentId, widgetId, rowid) {
-  openPlayRow.set(deviceId, { rowid, key: playKey(contentId, widgetId) });
+function rememberOpenPlay(deviceId, contentId, widgetId, rowid, zoneId = null) {
+  const k = zoneId ? `${deviceId}:${zoneId}` : deviceId;
+  openPlayRow.set(k, { rowid, key: playKey(contentId, widgetId) });
 }
 
 /*
@@ -100,10 +101,11 @@ function rememberOpenPlay(deviceId, contentId, widgetId, rowid) {
  * plausible duration. When the keys disagree we fall back to the search, which is what the
  * database can still answer correctly.
  */
-function takeOpenPlay(deviceId, contentId, widgetId) {
-  const e = openPlayRow.get(deviceId);
+function takeOpenPlay(deviceId, contentId, widgetId, zoneId = null) {
+  const k = zoneId ? `${deviceId}:${zoneId}` : deviceId;
+  const e = openPlayRow.get(k);
   if (!e) return null;
-  openPlayRow.delete(deviceId);
+  openPlayRow.delete(k);
   return e.key === playKey(contentId, widgetId) ? e.rowid : null;
 }
 
@@ -2181,9 +2183,10 @@ const EVENT_APPLIERS = Object.freeze({
         // waited in an outbox), this node's clock for a local socket. The throttle compares
         // event times, so a drained backlog is a sequence of real plays, not one runaway second.
         const nowMs = eventTimeMs(data, ctx);
-        const lastMs = lastPlayLogAt.get(device_id) || 0;
+        const logThrottleKey = zone_id ? `${device_id}:${zone_id}` : device_id;
+        const lastMs = lastPlayLogAt.get(logThrottleKey) || 0;
         if (nowMs - lastMs >= PLAY_LOG_MIN_GAP_MS) {
-          lastPlayLogAt.set(device_id, nowMs);
+          lastPlayLogAt.set(logThrottleKey, nowMs);
           // Resolve the reported id against what actually exists rather than handing it
           // straight to a foreign key. content_id references content(id) and widget_id
           // references widgets(id); a stale id from a cached playlist made the INSERT
@@ -2221,7 +2224,7 @@ const EVENT_APPLIERS = Object.freeze({
            * however much history accumulates — which matters because history only grows.
            */
           rememberOpenPlay(device_id, cid, wid, info.lastInsertRowid);
-          playLogAtBeforeOpen.set(device_id, lastMs);
+          playLogAtBeforeOpen.set(logThrottleKey, lastMs);
         }
         /*
          * #299: a new play beginning is the evidence that closes whatever the last outage or

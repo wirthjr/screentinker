@@ -109,7 +109,25 @@ class UpdateChecker(private val context: Context) {
         installReceiver = receiver
     }
 
+    private fun isInstalledFromPlayStore(): Boolean {
+        return try {
+            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getInstallerPackageName(context.packageName)
+            }
+            installer == "com.android.vending"
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     fun startPeriodicCheck() {
+        if (isInstalledFromPlayStore()) {
+            Log.i(TAG, "App installed from Google Play Store; skipping internal OTA updates")
+            return
+        }
         stopPeriodicCheck()
         ensureInstallReceiver()
         checkTimer = object : Runnable {
@@ -159,7 +177,7 @@ class UpdateChecker(private val context: Context) {
      * managed panel looked identical to a working one.
      */
     fun checkForUpdate(forced: Boolean = false) {
-        if (config.serverUrl.isEmpty()) return
+        if (config.serverUrl.isEmpty() || isInstalledFromPlayStore()) return
 
         Thread {
             try {

@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.remotedisplay.player"
-    compileSdk = 34
+    compileSdk = 36
 
     /*
      * Compress the native libraries in the APK; Android unpacks the one matching ABI at INSTALL
@@ -43,11 +43,11 @@ android {
     defaultConfig {
         applicationId = "br.com.arcosistemas.indoor"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         // Env-overridable so device-owner reinstalls (which require an ever-increasing
         // versionCode — downgrades are blocked) don't churn this file each build.
-        versionCode = (System.getenv("VERSION_CODE") ?: findProperty("VERSION_CODE") as String? ?: "186").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: findProperty("VERSION_NAME") as String? ?: "3.1.3"
+        versionCode = (System.getenv("VERSION_CODE") ?: findProperty("VERSION_CODE") as String? ?: "188").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: findProperty("VERSION_NAME") as String? ?: "3.1.5"
     }
 
     signingConfigs {
@@ -68,7 +68,7 @@ android {
         }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

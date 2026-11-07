@@ -1578,8 +1578,8 @@ class WebSocketService : Service() {
      */
     private val playQueue = OfflinePlayQueue()
     private var queueLoaded = false
-    /** The play we are inside, when offline: completed and queued when the item is left. */
-    private var offlineStart: Triple<String, String, Long>? = null   // contentId, name, startedAtSec
+    /** The plays we are inside, when offline: completed and queued when the item is left. Keyed by zoneId or __default__. */
+    private val offlineStarts = mutableMapOf<String, Triple<String, String, Long>>()   // zoneKey -> contentId, name, startedAtSec
     private var flushInFlight = false
     /*
      * The server acks a flush with counts, not ids, so the entries just sent are cleared after a
@@ -1640,14 +1640,15 @@ class WebSocketService : Service() {
         }
     }
 
-    fun sendPlayStart(contentId: String, contentName: String, durationSec: Int) {
+    fun sendPlayStart(contentId: String, contentName: String, durationSec: Int, zoneId: String? = null, layoutId: String? = null) {
+        val zk = zoneId ?: "__default__"
         if (socket?.connected() != true) {
             // Offline: remember when this item started so the play can be completed on leaving it.
             loadQueueOnce()
-            offlineStart = Triple(contentId, contentName, System.currentTimeMillis() / 1000)
+            offlineStarts[zk] = Triple(contentId, contentName, System.currentTimeMillis() / 1000)
             return
         }
-        offlineStart = null
+        offlineStarts.remove(zk)
         try {
             val data = JSONObject().apply {
                 put("device_id", config.deviceId)
@@ -1655,6 +1656,8 @@ class WebSocketService : Service() {
                 put("content_id", if (contentId.isEmpty()) JSONObject.NULL else contentId)
                 put("content_name", contentName)
                 put("duration_sec", if (durationSec > 0) durationSec else JSONObject.NULL)
+                if (!zoneId.isNullOrEmpty()) put("zone_id", zoneId)
+                if (!layoutId.isNullOrEmpty()) put("layout_id", layoutId)
             }
             socket?.emit("device:play-event", data)
         } catch (e: Throwable) { Log.w("WebSocketService", "sendPlayStart: ${e.message}") }
@@ -1675,15 +1678,15 @@ class WebSocketService : Service() {
         } catch (e: Throwable) { Log.w("WebSocketService", "sendLayoutStart: ${e.message}") }
     }
 
-    fun sendPlayEnd(contentId: String, contentName: String, completed: Boolean) {
+    fun sendPlayEnd(contentId: String, contentName: String, completed: Boolean, zoneId: String? = null, layoutId: String? = null) {
+        val zk = zoneId ?: "__default__"
         if (socket?.connected() != true) {
             /*
              * Offline: close the play we opened and queue it whole. Without a matching start we
              * have no idea when it began, and inventing one would put a fabricated time into a
              * report — so an unmatched end is discarded rather than guessed at.
              */
-            val open = offlineStart
-            offlineStart = null
+            val open = offlineStarts.remove(zk)
             if (open != null && open.first == contentId) {
                 loadQueueOnce()
                 val now = System.currentTimeMillis() / 1000
@@ -1715,6 +1718,8 @@ class WebSocketService : Service() {
                 put("content_id", if (contentId.isEmpty()) JSONObject.NULL else contentId)
                 put("content_name", contentName)
                 put("completed", completed)
+                if (!zoneId.isNullOrEmpty()) put("zone_id", zoneId)
+                if (!layoutId.isNullOrEmpty()) put("layout_id", layoutId)
             }
             socket?.emit("device:play-event", data)
         } catch (e: Throwable) { Log.w("WebSocketService", "sendPlayEnd: ${e.message}") }
@@ -1726,7 +1731,7 @@ class WebSocketService : Service() {
      * remembered start is dropped, never queued.
      */
     fun sendPlaySkipped(contentId: String, contentName: String, elapsedMs: Long) {
-        if (socket?.connected() != true) { offlineStart = null; return }
+        if (socket?.connected() != true) { offlineStarts.remove("__default__"); return }
         try {
             val data = JSONObject().apply {
                 put("device_id", config.deviceId)

@@ -39,6 +39,7 @@ data class Zone(
 class ZoneManager(
     private val context: Context,
     private val container: FrameLayout,
+    var onPlayLog: ((event: String, contentId: String, contentName: String, durationSec: Int, zoneId: String, layoutId: String) -> Unit)? = null,
     private val onAllVideosComplete: () -> Unit
 ) {
     private val TAG = "ZoneManager"
@@ -47,6 +48,8 @@ class ZoneManager(
     private val handler = Handler(Looper.getMainLooper())
     private val zoneViews = mutableMapOf<String, View>()
     private val zoneExoPlayers = mutableMapOf<String, ExoPlayer>()
+    // Proof-of-play: remember the item currently showing per zone so leaving it closes the play.
+    private val zoneLoggedItem = mutableMapOf<String, Triple<String, String, Int>>()
     /*
      * Each zone video's watchdog (StreamHealth) and its pending reconnect, if one is scheduled.
      * Ticked every HEALTH_TICK_MS while any zone shows video: a stalled stream raises no event.
@@ -359,6 +362,12 @@ class ZoneManager(
         zoneLiveInputs.remove(zone.id)?.release()
         zoneFaces[zone.id] = ZoneFace.NONE
 
+        // Close previously logged item in this zone if any
+        val prev = zoneLoggedItem.remove(zone.id)
+        if (prev != null) {
+            onPlayLog?.invoke("play_end", prev.first, prev.second, prev.third, zone.id, currentLayoutId ?: "")
+        }
+
         if (activeIdx < 0) {
             oldView?.let { container.removeView(it) }
             scheduleZoneAdvance(zone.id, 30_000L) { showZoneItem(zone, assignments, 0, params) }
@@ -370,6 +379,17 @@ class ZoneManager(
         val willBufferView = (widgetType != null || mimeType == ItemTiming.BUNDLE_MIME) && oldView != null
         if (!willBufferView) {
             oldView?.let { container.removeView(it) }
+        }
+
+        // Proof-of-play: emit play_start if log_play != 0
+        if (a.optInt("log_play", 1) != 0) {
+            val cid = if (!a.isNull("widget_id") && a.optString("widget_id", "").isNotEmpty()) a.optString("widget_id")
+                      else if (!a.isNull("content_id") && a.optString("content_id", "").isNotEmpty()) a.optString("content_id")
+                      else ""
+            val name = a.optString("filename", "").ifEmpty { a.optString("widget_name", "").ifEmpty { a.optString("title", "item") } }
+            val durationSec = a.optInt("duration_sec", 10)
+            zoneLoggedItem[zone.id] = Triple(cid, name, durationSec)
+            onPlayLog?.invoke("play_start", cid, name, durationSec, zone.id, currentLayoutId ?: "")
         }
 
         // Scheduled zones cycle even with one active item so windows re-evaluate.
@@ -1016,6 +1036,10 @@ class ZoneManager(
 
     /** Tear down one zone: its view, player, timers and transition. Other zones are untouched. */
     private fun teardownZone(zoneId: String) {
+        val prev = zoneLoggedItem.remove(zoneId)
+        if (prev != null) {
+            onPlayLog?.invoke("play_end", prev.first, prev.second, prev.third, zoneId, currentLayoutId ?: "")
+        }
         zoneGeneration[zoneId] = (zoneGeneration[zoneId] ?: 0) + 1   // stale callbacks are ignored
         cancelZoneRotation(zoneId)
         cancelZoneTransition(zoneId)
@@ -1083,6 +1107,10 @@ class ZoneManager(
         cancelAllRotations()
         cancelAllTransitions()
         txEngine.shutdown()   // the GL context + thread are recreated on the next zone wipe
+        for ((zid, prev) in zoneLoggedItem) {
+            onPlayLog?.invoke("play_end", prev.first, prev.second, prev.third, zid, currentLayoutId ?: "")
+        }
+        zoneLoggedItem.clear()
         zoneFaces.clear()
         zoneLastIdx.clear()
         releaseExoPlayers()
