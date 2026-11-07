@@ -424,11 +424,11 @@ async function loadTraffic() {
     </div>
     ${section(esc(t('platform.traffic.over_time')), '', chart)}
     ${section(esc(t('platform.traffic.by_category')), '', table([t('platform.traffic.col_category'), t('platform.traffic.col_out'), t('platform.traffic.col_share'), t('platform.traffic.col_requests')],
-      (r.by_category || []).map((c) => [esc(t(`platform.traffic.cat.${c.category}`)), esc(formatBytes(c.out || 0)), esc(share(c.out || 0)), esc((c.req || 0).toLocaleString())])))}
+    (r.by_category || []).map((c) => [esc(t(`platform.traffic.cat.${c.category}`)), esc(formatBytes(c.out || 0)), esc(share(c.out || 0)), esc((c.req || 0).toLocaleString())])))}
     ${section(esc(t('platform.traffic.top_workspaces')), '', table([t('platform.traffic.col_workspace'), t('platform.traffic.col_org'), t('platform.traffic.col_out'), t('platform.traffic.col_share')],
       (r.top_workspaces || []).map((w) => [esc(w.name || w.id), esc(w.org || ''), esc(formatBytes(w.out || 0)), esc(share(w.out || 0))])))}
     ${section(esc(t('platform.traffic.top_screens')), esc(t('platform.traffic.top_screens_hint')), table([t('platform.traffic.col_screen'), t('platform.traffic.col_workspace'), t('platform.traffic.col_out')],
-      (r.top_devices || []).map((d) => [esc(d.name || d.id), esc(d.workspace || ''), esc(formatBytes(d.out || 0))])))}
+        (r.top_devices || []).map((d) => [esc(d.name || d.id), esc(d.workspace || ''), esc(formatBytes(d.out || 0))])))}
     ${r.nodes && r.nodes.length > 1 ? `<p style="font-size:12px;color:var(--text-muted)">${esc(t('platform.traffic.nodes', { n: r.nodes.length }))}</p>` : ''}`;
 }
 
@@ -536,7 +536,7 @@ async function loadOverview() {
             <summary><span>${esc(text)}</span><span class="att-chev" aria-hidden="true"></span></summary>
             <div class="att-body" data-href="${href}"><p class="platform-empty">${esc(t('common.loading'))}</p></div>
           </details>`).join('')}</div>`
-          : `<p class="platform-empty">${esc(t('platform.overview.all_clear'))}</p>`}
+        : `<p class="platform-empty">${esc(t('platform.overview.all_clear'))}</p>`}
       </div>
       <p class="platform-version">${esc(t('platform.overview.version', { v: o.version }))}</p>`;
     loadFunnel();
@@ -593,7 +593,7 @@ async function loadFeedback() {
   if (!f || !f.enabled) return;
   const trig = (k) => t('platform.feedback.trigger.' + k);
   const journey = (j) => [j.screens ? `${j.screens} ${j.screens === 1 ? 'screen' : 'screens'}` : 'no screens', j.first_publish ? 'published' : '',
-    j.limit_hit ? 'hit a limit' : '', j.checkout_start ? 'checkout' : '', j.checkout_complete ? 'paid' : ''].filter(Boolean).join(' · ');
+  j.limit_hit ? 'hit a limit' : '', j.checkout_start ? 'checkout' : '', j.checkout_complete ? 'paid' : ''].filter(Boolean).join(' · ');
   const by = (f.by_trigger || []).map((b) => `<span class="platform-empty">${esc(trig(b.trigger))}: <b>${esc(String(b.answers))}</b>${b.average != null ? ` · ${esc(String(b.average))}/5` : ''}</span>`).join(' &nbsp; ');
   const reasons = (f.reasons || []).slice(0, 8).map((r) => `${esc(trig(r.trigger))} · ${esc(t('feedback.reason.' + r.reason))}: ${esc(String(r.n))}`).join(' &nbsp;·&nbsp; ');
   const items = (f.entries || []).slice(0, 100).map((e) => `<div class="feedback-item${e.rating != null && e.rating <= 2 ? ' low' : ''}">
@@ -718,7 +718,7 @@ async function loadOrgs() {
   // #talk: the per-org Talk controls are only meaningful when the TALK_ENABLED master switch is on.
   // (The per-org flag gates on top of it, so with the master off the toggle would be a no-op.)
   let talkMaster = false;
-  try { const s = await api.getServerStatus(); talkMaster = !!(s && s.features && s.features.talk); } catch (_) {}
+  try { const s = await api.getServerStatus(); talkMaster = !!(s && s.features && s.features.talk); } catch (_) { }
   if (!orgs.length) {
     el.innerHTML = `<p style="color:var(--text-muted)">${t('admin.orgs.empty')}</p>`;
     return;
@@ -1170,9 +1170,9 @@ async function loadPlans() {
                 ${p.active ? '' : `<span style="margin-left:6px;font-size:10px;padding:1px 6px;border:1px solid var(--border);border-radius:8px;color:var(--text-muted)">${t('admin.plan_hidden')}</span>`}
               </td>
               <td style="padding:8px;text-align:right">${p.max_devices === -1 ? t('admin.unlimited') : p.max_devices}</td>
-              <td style="padding:8px;text-align:right">${p.max_storage_mb === -1 ? t('admin.unlimited') : p.max_storage_mb >= 1024 ? (p.max_storage_mb/1024)+'GB' : p.max_storage_mb+'MB'}</td>
-              <td style="padding:8px;text-align:right">${p.price_monthly > 0 ? '$'+p.price_monthly : t('admin.free')}</td>
-              <td style="padding:8px;text-align:right">${p.price_yearly > 0 ? '$'+p.price_yearly : '-'}</td>
+              <td style="padding:8px;text-align:right">${p.max_storage_mb === -1 ? t('admin.unlimited') : p.max_storage_mb >= 1024 ? (p.max_storage_mb / 1024) + 'GB' : p.max_storage_mb + 'MB'}</td>
+              <td style="padding:8px;text-align:right">${p.price_monthly > 0 ? '$' + p.price_monthly : t('admin.free')}</td>
+              <td style="padding:8px;text-align:right">${p.price_yearly > 0 ? '$' + p.price_yearly : '-'}</td>
               <td style="padding:8px;text-align:right${p.user_count ? ';font-weight:500' : ';color:var(--text-muted)'}">${p.user_count}</td>
               <td style="padding:8px;text-align:right;color:var(--text-muted)">${p.device_count}</td>
               <td style="padding:8px;font-size:12px">${checkout(p)}</td>
@@ -1231,9 +1231,8 @@ async function loadSystem() {
         ${versionComparison}
         ${updaterInfo ? `<div class="info-card">
            <div class="info-card-label">${t('admin.updater')}</div>
-           <div class="info-card-value small" style="color:${updaterInfo.available ? 'var(--success)' : 'var(--text-muted)'}">${
-             updaterInfo.available ? esc(t('admin.updater_ready', { kind: updaterInfo.kind }))
-             : updaterInfo.reason === 'not_running' ? t('admin.updater_not_running') : t('admin.updater_not_installed')}</div>
+           <div class="info-card-value small" style="color:${updaterInfo.available ? 'var(--success)' : 'var(--text-muted)'}">${updaterInfo.available ? esc(t('admin.updater_ready', { kind: updaterInfo.kind }))
+          : updaterInfo.reason === 'not_running' ? t('admin.updater_not_running') : t('admin.updater_not_installed')}</div>
          </div>` : ''}
       </div>
       <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
@@ -1272,7 +1271,7 @@ async function loadSystem() {
       const resultEl = document.getElementById('updateResult');
       const target = version.latest_version;
       if (updaterInfo?.available
-          && !confirm(t('admin.update_confirm', { from: version.version, to: target }))) return;
+        && !confirm(t('admin.update_confirm', { from: version.version, to: target }))) return;
       btn.disabled = true;
       btn.textContent = t('admin.updating');
       try {
@@ -1311,7 +1310,7 @@ async function loadSystem() {
       if (btn) { btn.disabled = true; btn.textContent = t('admin.updating'); }
       watchUpdate(document.getElementById('updateResult'), updateStatus.pending?.[0] || updateStatus.job?.id);
     } else if (updateStatus?.job && ['failed', 'rolled_back'].includes(updateStatus.job.state)
-               && Date.now() / 1000 - updateStatus.job.updated_at < 86400) {
+      && Date.now() / 1000 - updateStatus.job.updated_at < 86400) {
       renderUpdateJob(document.getElementById('updateResult'), updateStatus);
     }
   } catch (err) { el.innerHTML = `<p style="color:var(--danger)">${esc(err.message)}</p>`; }
