@@ -247,6 +247,27 @@ class KioskSession(
                 return true
             }
             override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message?): Boolean = false
+            override fun onPermissionRequest(request: android.webkit.PermissionRequest?) {
+                if (request == null) return
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= 23) {
+                        val needed = mutableListOf<String>()
+                        if (activity.checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            needed.add(android.Manifest.permission.CAMERA)
+                        }
+                        if (activity.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            needed.add(android.Manifest.permission.RECORD_AUDIO)
+                        }
+                        if (needed.isNotEmpty()) {
+                            activity.requestPermissions(needed.toTypedArray(), 101)
+                        }
+                    }
+                    request.grant(request.resources)
+                } catch (e: Exception) {
+                    DebugLog.w(TAG, "Failed to grant kiosk media permission: ${e.message}")
+                    super.onPermissionRequest(request)
+                }
+            }
         }
         // Zoom is a LAYOUT zoom, like the server's passive render: the page lays out for a viewport
         // of size/zoom and the view is scaled back up, so a desktop site reflows bigger rather than

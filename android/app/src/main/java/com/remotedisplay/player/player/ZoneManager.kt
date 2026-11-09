@@ -1103,6 +1103,19 @@ class ZoneManager(
         txEngine.release()
     }
 
+    /** Reload active WebViews across all zones (e.g. after camera hardware release). */
+    fun reloadWebViews() {
+        handler.post {
+            for ((_, v) in zoneViews) {
+                if (v is android.webkit.WebView) {
+                    try {
+                        v.reload()
+                    } catch (_: Throwable) {}
+                }
+            }
+        }
+    }
+
     fun cleanup() {
         cancelAllRotations()
         cancelAllTransitions()

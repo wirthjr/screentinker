@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- SEO Primário -->
   <title>Arco Indoor - Mídia Indoor e TV Corporativa Inteligente</title>
-  <meta name="description" content="Arco Indoor: Plataforma completa de mídia indoor, sinalização digital e TV corporativa. Gerencie suas telas remotamente com vídeos, notícias ao vivo, clima e agendamentos inteligentes.">
-  <meta name="keywords" content="midia indoor, sinalizacao digital, tv corporativa, menu digital, painel de led, digital signage brasil, arco sistemas, arco indoor, gestao de telas, tv box indoor">
+  <meta name="description"
+    content="Arco Indoor: Plataforma completa de mídia indoor, sinalização digital e TV corporativa. Gerencie suas telas remotamente com vídeos, notícias ao vivo, clima e agendamentos inteligentes.">
+  <meta name="keywords"
+    content="midia indoor, sinalizacao digital, tv corporativa, menu digital, painel de led, digital signage brasil, arco sistemas, arco indoor, gestao de telas, tv box indoor">
   <meta name="author" content="Arco Tech Sistemas">
   <meta name="robots" content="index, follow">
 
   <!-- Open Graph / Redes Sociais -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Arco Indoor - Mídia Indoor e TV Corporativa Inteligente">
-  <meta property="og:description" content="Transforme suas TVs em canais poderosos de vendas e comunicação. Gestão 100% em nuvem com funcionamento offline contínuo.">
+  <meta property="og:description"
+    content="Transforme suas TVs em canais poderosos de vendas e comunicação. Gestão 100% em nuvem com funcionamento offline contínuo.">
   <meta property="og:image" content="/assets/arco/banner.png">
   <meta property="og:site_name" content="Arco Indoor">
 
@@ -26,10 +30,18 @@
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root {
       --primary: #EA580C;
       --primary-hover: #C2410C;
@@ -55,12 +67,28 @@
       overflow-x: hidden;
     }
 
-    a { color: inherit; text-decoration: none; }
-    img { max-width: 100%; height: auto; display: block; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
 
     /* Utilitários */
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-    .text-center { text-align: center; }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
     .badge {
       display: inline-flex;
       align-items: center;
@@ -74,6 +102,7 @@
       border-radius: 9999px;
       margin-bottom: 20px;
     }
+
     .badge-dot {
       width: 8px;
       height: 8px;
@@ -96,32 +125,38 @@
       cursor: pointer;
       border: none;
     }
+
     .btn-primary {
       background: linear-gradient(135deg, var(--primary), #F97316);
       color: #FFF;
       box-shadow: 0 4px 20px var(--primary-glow);
     }
+
     .btn-primary:hover {
       background: linear-gradient(135deg, #F97316, var(--primary-hover));
       transform: translateY(-2px);
       box-shadow: 0 6px 24px rgba(234, 88, 12, 0.4);
     }
+
     .btn-outline {
       background: rgba(255, 255, 255, 0.04);
       color: var(--text);
       border: 1px solid var(--border-light);
     }
+
     .btn-outline:hover {
       background: rgba(255, 255, 255, 0.08);
       border-color: #64748B;
       transform: translateY(-2px);
     }
+
     .btn-whatsapp {
       background: #25D366;
       color: #FFF;
       font-weight: 700;
       box-shadow: 0 4px 18px rgba(37, 211, 102, 0.25);
     }
+
     .btn-whatsapp:hover {
       background: var(--whatsapp-hover);
       transform: translateY(-2px);
@@ -140,12 +175,14 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       transition: all 0.3s;
     }
+
     .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 76px;
     }
+
     .brand {
       display: flex;
       align-items: center;
@@ -154,28 +191,34 @@
       font-weight: 800;
       letter-spacing: -0.5px;
     }
+
     .brand img {
       height: 42px;
       width: auto;
       object-fit: contain;
     }
+
     .brand-title span {
       color: var(--primary);
     }
+
     .nav-links {
       display: flex;
       align-items: center;
       gap: 28px;
     }
+
     .nav-links a {
       font-size: 14px;
       font-weight: 500;
       color: var(--text-muted);
       transition: color 0.2s;
     }
+
     .nav-links a:hover {
       color: #FFF;
     }
+
     .nav-actions {
       display: flex;
       align-items: center;
@@ -188,6 +231,7 @@
       position: relative;
       overflow: hidden;
     }
+
     .hero::before {
       content: "";
       position: absolute;
@@ -201,6 +245,7 @@
       pointer-events: none;
       z-index: 0;
     }
+
     .hero-content {
       position: relative;
       z-index: 1;
@@ -208,6 +253,7 @@
       margin: 0 auto;
       text-align: center;
     }
+
     .hero h1 {
       font-size: clamp(34px, 5.2vw, 58px);
       font-weight: 800;
@@ -215,11 +261,13 @@
       letter-spacing: -1.2px;
       margin-bottom: 24px;
     }
+
     .hero h1 span.gradient {
       background: linear-gradient(135deg, #FFF 30%, #FB923C 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
     .hero p {
       font-size: clamp(16px, 2vw, 19px);
       color: var(--text-muted);
@@ -227,6 +275,7 @@
       max-width: 680px;
       margin: 0 auto 36px;
     }
+
     .hero-btns {
       display: flex;
       gap: 16px;
@@ -247,6 +296,7 @@
       overflow: hidden;
       aspect-ratio: 16 / 9;
     }
+
     .screen-stand {
       width: 140px;
       height: 24px;
@@ -256,6 +306,7 @@
       border: 1px solid #334155;
       border-top: none;
     }
+
     .screen-base {
       width: 320px;
       height: 10px;
@@ -264,6 +315,7 @@
       border-radius: 6px;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
     }
+
     .screen-grid {
       display: grid;
       grid-template-columns: 2.2fr 1fr;
@@ -273,6 +325,7 @@
       background: #020617;
       color: #FFF;
     }
+
     .screen-main-zone {
       background: #0F172A;
       display: flex;
@@ -283,12 +336,14 @@
       position: relative;
       overflow: hidden;
     }
+
     .screen-main-zone img {
       max-height: 80%;
       object-fit: contain;
       border-radius: 8px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
+
     .screen-side-zone {
       background: #111C33;
       border-left: 2px solid var(--border);
@@ -297,12 +352,14 @@
       flex-direction: column;
       gap: 14px;
     }
+
     .side-widget {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
       padding: 12px;
     }
+
     .side-widget-title {
       font-size: 11px;
       text-transform: uppercase;
@@ -311,6 +368,7 @@
       font-weight: 700;
       margin-bottom: 6px;
     }
+
     .screen-bottom-ticker {
       grid-column: 1 / -1;
       background: #090E1A;
@@ -323,6 +381,7 @@
       overflow: hidden;
       white-space: nowrap;
     }
+
     .ticker-label {
       background: var(--primary);
       color: #FFF;
@@ -342,37 +401,47 @@
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
+
     .trust-item {
       text-align: center;
     }
+
     .trust-item .icon {
       font-size: 28px;
       color: var(--primary);
       margin-bottom: 8px;
     }
+
     .trust-item h4 {
       font-size: 16px;
       font-weight: 700;
       margin-bottom: 4px;
     }
+
     .trust-item p {
       font-size: 13px;
       color: var(--text-muted);
     }
 
     /* Seções Gerais */
-    section { padding: 90px 0; position: relative; }
+    section {
+      padding: 90px 0;
+      position: relative;
+    }
+
     .section-header {
       text-align: center;
       max-width: 680px;
       margin: 0 auto 56px;
     }
+
     .section-header h2 {
       font-size: clamp(28px, 3.8vw, 42px);
       font-weight: 800;
       letter-spacing: -0.8px;
       margin-bottom: 16px;
     }
+
     .section-header p {
       font-size: 16px;
       color: var(--text-muted);
@@ -384,6 +453,7 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 24px;
     }
+
     .solution-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -392,11 +462,13 @@
       transition: all 0.3s ease;
       position: relative;
     }
+
     .solution-card:hover {
       background: var(--bg-card-hover);
       border-color: rgba(234, 88, 12, 0.4);
       transform: translateY(-4px);
     }
+
     .solution-icon {
       width: 52px;
       height: 52px;
@@ -409,11 +481,13 @@
       font-size: 24px;
       margin-bottom: 20px;
     }
+
     .solution-card h3 {
       font-size: 20px;
       font-weight: 700;
       margin-bottom: 10px;
     }
+
     .solution-card p {
       color: var(--text-muted);
       font-size: 14px;
@@ -426,6 +500,7 @@
       grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
       gap: 28px;
     }
+
     .feature-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -434,6 +509,7 @@
       display: flex;
       gap: 20px;
     }
+
     .feature-icon-box {
       flex-shrink: 0;
       width: 48px;
@@ -447,11 +523,13 @@
       justify-content: center;
       font-size: 22px;
     }
+
     .feature-card h3 {
       font-size: 18px;
       font-weight: 700;
       margin-bottom: 8px;
     }
+
     .feature-card p {
       font-size: 14px;
       color: var(--text-muted);
@@ -465,6 +543,7 @@
       gap: 30px;
       position: relative;
     }
+
     .step-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -473,6 +552,7 @@
       text-align: center;
       position: relative;
     }
+
     .step-number {
       width: 44px;
       height: 44px;
@@ -487,11 +567,13 @@
       margin: 0 auto 20px;
       box-shadow: 0 0 20px var(--primary-glow);
     }
+
     .step-card h3 {
       font-size: 19px;
       font-weight: 700;
       margin-bottom: 12px;
     }
+
     .step-card p {
       font-size: 14px;
       color: var(--text-muted);
@@ -505,6 +587,7 @@
       gap: 12px;
       margin-bottom: 40px;
     }
+
     .pricing-toggle button {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -516,17 +599,20 @@
       cursor: pointer;
       transition: all 0.2s;
     }
+
     .pricing-toggle button.active {
       background: var(--primary);
       border-color: var(--primary);
       color: #FFF;
     }
+
     .pricing-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 24px;
       align-items: stretch;
     }
+
     .pricing-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -538,10 +624,12 @@
       transition: all 0.25s;
       position: relative;
     }
+
     .pricing-card.featured {
       border-color: var(--primary);
       box-shadow: 0 10px 40px var(--primary-glow);
     }
+
     .pricing-card.featured::before {
       content: "Mais Escolhido";
       position: absolute;
@@ -556,10 +644,31 @@
       padding: 4px 12px;
       border-radius: 9999px;
     }
-    .pricing-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-    .pricing-card .price { font-size: 36px; font-weight: 800; color: #FFF; margin: 16px 0; }
-    .pricing-card .price span { font-size: 14px; color: var(--text-muted); font-weight: 400; }
-    .pricing-card ul { list-style: none; margin: 20px 0 28px; }
+
+    .pricing-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .pricing-card .price {
+      font-size: 36px;
+      font-weight: 800;
+      color: #FFF;
+      margin: 16px 0;
+    }
+
+    .pricing-card .price span {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .pricing-card ul {
+      list-style: none;
+      margin: 20px 0 28px;
+    }
+
     .pricing-card ul li {
       font-size: 14px;
       color: var(--text-muted);
@@ -568,15 +677,26 @@
       align-items: center;
       gap: 8px;
     }
+
     .pricing-card ul li::before {
       content: "✓";
       color: var(--primary);
       font-weight: 700;
     }
-    .pricing-tail { margin-top: 30px; }
+
+    .pricing-tail {
+      margin-top: 30px;
+    }
 
     /* FAQ */
-    .faq-list { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     .faq-item {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -584,6 +704,7 @@
       padding: 22px 26px;
       cursor: pointer;
     }
+
     .faq-item summary {
       font-weight: 700;
       font-size: 17px;
@@ -592,9 +713,23 @@
       align-items: center;
       justify-content: space-between;
     }
-    .faq-item summary::after { content: "+"; font-size: 22px; color: var(--primary); }
-    .faq-item[open] summary::after { content: "−"; }
-    .faq-item p { margin-top: 14px; color: var(--text-muted); font-size: 15px; line-height: 1.6; }
+
+    .faq-item summary::after {
+      content: "+";
+      font-size: 22px;
+      color: var(--primary);
+    }
+
+    .faq-item[open] summary::after {
+      content: "−";
+    }
+
+    .faq-item p {
+      margin-top: 14px;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
 
     /* CTA Banner */
     .cta-banner {
@@ -606,8 +741,19 @@
       position: relative;
       overflow: hidden;
     }
-    .cta-banner h2 { font-size: clamp(28px, 4vw, 42px); font-weight: 800; margin-bottom: 16px; }
-    .cta-banner p { font-size: 18px; color: var(--text-muted); max-width: 600px; margin: 0 auto 32px; }
+
+    .cta-banner h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .cta-banner p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
 
     /* Footer */
     footer {
@@ -615,28 +761,46 @@
       border-top: 1px solid var(--border);
       padding: 70px 0 30px;
     }
+
     .footer-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1.5fr;
       gap: 40px;
       margin-bottom: 50px;
     }
+
     .footer-brand p {
       color: var(--text-muted);
       font-size: 14px;
       margin-top: 16px;
       max-width: 320px;
     }
+
     .footer-col h4 {
       font-size: 15px;
       font-weight: 700;
       margin-bottom: 20px;
       color: #FFF;
     }
-    .footer-col ul { list-style: none; }
-    .footer-col ul li { margin-bottom: 12px; }
-    .footer-col ul li a { font-size: 14px; color: var(--text-muted); transition: color 0.2s; }
-    .footer-col ul li a:hover { color: #FFF; }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col ul li {
+      margin-bottom: 12px;
+    }
+
+    .footer-col ul li a {
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .footer-col ul li a:hover {
+      color: #FFF;
+    }
+
     .footer-bottom {
       border-top: 1px solid rgba(255, 255, 255, 0.06);
       padding-top: 30px;
@@ -658,6 +822,7 @@
       font-size: 24px;
       cursor: pointer;
     }
+
     .mobile-drawer {
       display: none;
       position: fixed;
@@ -671,9 +836,11 @@
       gap: 16px;
       z-index: 999;
     }
+
     .mobile-drawer.open {
       display: flex;
     }
+
     .mobile-drawer a {
       font-size: 16px;
       font-weight: 500;
@@ -689,6 +856,7 @@
       gap: 22px;
       margin-bottom: 40px;
     }
+
     .spot-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -700,18 +868,21 @@
       transition: all 0.25s ease;
       position: relative;
     }
+
     .spot-card:hover {
       border-color: rgba(234, 88, 12, 0.5);
       background: var(--bg-card-hover);
       transform: translateY(-4px);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
+
     .spot-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 14px;
     }
+
     .spot-badge {
       display: inline-flex;
       align-items: center;
@@ -726,16 +897,19 @@
       color: #4ADE80;
       border: 1px solid rgba(34, 197, 94, 0.3);
     }
+
     .spot-icon {
       font-size: 32px;
       line-height: 1;
     }
+
     .spot-title {
       font-size: 18px;
       font-weight: 700;
       color: #FFF;
       margin-bottom: 6px;
     }
+
     .spot-location {
       font-size: 13px;
       color: var(--text-muted);
@@ -744,6 +918,7 @@
       align-items: center;
       gap: 6px;
     }
+
     .spot-stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -754,12 +929,14 @@
       margin-bottom: 14px;
       border: 1px solid rgba(255, 255, 255, 0.04);
     }
+
     .spot-stat-label {
       font-size: 11px;
       color: var(--text-muted);
       text-transform: uppercase;
       font-weight: 600;
     }
+
     .spot-stat-val {
       font-size: 15px;
       font-weight: 800;
@@ -774,6 +951,7 @@
       gap: 24px;
       margin-bottom: 40px;
     }
+
     .cota-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -784,14 +962,17 @@
       position: relative;
       transition: all 0.25s ease;
     }
+
     .cota-card.featured {
       border: 2px solid var(--primary);
       background: linear-gradient(180deg, rgba(234, 88, 12, 0.08) 0%, rgba(19, 30, 50, 0.95) 100%);
       box-shadow: 0 15px 40px -10px var(--primary-glow);
     }
+
     .cota-card:hover {
       transform: translateY(-4px);
     }
+
     .cota-tag {
       position: absolute;
       top: -12px;
@@ -807,18 +988,21 @@
       letter-spacing: 0.5px;
       white-space: nowrap;
     }
+
     .cota-name {
       font-size: 20px;
       font-weight: 700;
       margin-bottom: 8px;
       color: #FFF;
     }
+
     .cota-desc {
       font-size: 14px;
       color: var(--text-muted);
       margin-bottom: 20px;
       min-height: 42px;
     }
+
     .cota-price {
       font-size: 38px;
       font-weight: 800;
@@ -830,16 +1014,19 @@
       border-bottom: 1px solid var(--border);
       padding-bottom: 20px;
     }
+
     .cota-price span {
       font-size: 14px;
       color: var(--text-muted);
       font-weight: 500;
     }
+
     .cota-features {
       list-style: none;
       margin-bottom: 28px;
       flex-grow: 1;
     }
+
     .cota-features li {
       display: flex;
       align-items: center;
@@ -848,6 +1035,7 @@
       color: var(--text);
       margin-bottom: 12px;
     }
+
     .cota-features li::before {
       content: "✓";
       color: var(--primary);
@@ -870,22 +1058,55 @@
 
     /* Responsividade */
     @media (max-width: 900px) {
-      .trust-strip { grid-template-columns: repeat(2, 1fr); }
-      .steps-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr 1fr; }
-      .screen-grid { grid-template-columns: 1fr; }
-      .screen-side-zone { display: none; }
+      .trust-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .screen-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .screen-side-zone {
+        display: none;
+      }
     }
+
     @media (max-width: 768px) {
-      .nav-links { display: none; }
-      .mobile-menu-btn { display: block; }
-      .trust-strip { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr; }
-      .hero { padding: 120px 0 50px; }
-      .nav-actions .btn-whatsapp { display: none; }
+      .nav-links {
+        display: none;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .trust-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 120px 0 50px;
+      }
+
+      .nav-actions .btn-whatsapp {
+        display: none;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- Navegação Superior -->
@@ -904,10 +1125,12 @@
         <a href="#faq">Dúvidas</a>
       </div>
       <div class="nav-actions">
-        <a href="/r/iOKCl8B1RzU3uMOFvJ0OsA" class="btn" style="background: rgba(234, 88, 12, 0.15); border: 1px solid rgba(234, 88, 12, 0.4); color: #FB923C; padding: 8px 14px; font-size: 13px; font-weight: 600;">
+        <a href="/r/iOKCl8B1RzU3uMOFvJ0OsA" class="btn"
+          style="background: rgba(234, 88, 12, 0.15); border: 1px solid rgba(234, 88, 12, 0.4); color: #FB923C; padding: 8px 14px; font-size: 13px; font-weight: 600;">
           📤 Enviar Mídia
         </a>
-        <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20anunciar%20na%20rede%20Arco%20Indoor" target="_blank" class="btn btn-whatsapp" style="padding: 8px 16px; font-size: 13px;">
+        <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20anunciar%20na%20rede%20Arco%20Indoor"
+          target="_blank" class="btn btn-whatsapp" style="padding: 8px 16px; font-size: 13px;">
           WhatsApp
         </a>
         <a href="/app" class="btn btn-primary" style="padding: 8px 18px; font-size: 13px;">
@@ -917,14 +1140,16 @@
       </div>
     </div>
     <div class="mobile-drawer" id="mobileDrawer">
-      <a href="#anuncie" onclick="toggleMobileMenu()" style="color: #FB923C; font-weight: 700;">📺 Rede de Telas & Anuncie</a>
+      <a href="#anuncie" onclick="toggleMobileMenu()" style="color: #FB923C; font-weight: 700;">📺 Rede de Telas &
+        Anuncie</a>
       <a href="/r/iOKCl8B1RzU3uMOFvJ0OsA" style="color: #38BDF8; font-weight: 600;">📤 Enviar Mídia do Anunciante</a>
       <a href="#solucoes" onclick="toggleMobileMenu()">Soluções</a>
       <a href="#recursos" onclick="toggleMobileMenu()">Recursos</a>
       <a href="#como-funciona" onclick="toggleMobileMenu()">Como Funciona</a>
       <a href="#precos" onclick="toggleMobileMenu()">Planos Sistema</a>
       <a href="#faq" onclick="toggleMobileMenu()">Dúvidas</a>
-      <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20anunciar%20na%20rede%20Arco%20Indoor" target="_blank" style="color: #22C55E; font-weight: 700;">Falar no WhatsApp: (47) 99702-6699</a>
+      <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20anunciar%20na%20rede%20Arco%20Indoor"
+        target="_blank" style="color: #22C55E; font-weight: 700;">Falar no WhatsApp: (47) 99702-6699</a>
     </div>
   </nav>
 
@@ -939,13 +1164,15 @@
         Transforme suas Telas em <span class="gradient">Canais Poderosos de Vendas e Comunicação</span>
       </h1>
       <p>
-        Gerencie TVs em lojas, academias, clínicas, restaurantes e escritórios a partir de uma plataforma em nuvem segura, com suporte a múltiplas zonas, notícias ao vivo e operação 100% offline.
+        Gerencie TVs em lojas, academias, clínicas, restaurantes e escritórios a partir de uma plataforma em nuvem
+        segura, com suporte a múltiplas zonas, notícias ao vivo e operação 100% offline.
       </p>
       <div class="hero-btns">
         <a href="/app" class="btn btn-primary" style="padding: 14px 32px; font-size: 16px;">
           Começar Gratuitamente
         </a>
-        <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Quero%20uma%20demonstra%C3%A7%C3%A3o%20do%20Arco%20Indoor" target="_blank" class="btn btn-outline" style="padding: 14px 28px; font-size: 16px;">
+        <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Quero%20uma%20demonstra%C3%A7%C3%A3o%20do%20Arco%20Indoor"
+          target="_blank" class="btn btn-outline" style="padding: 14px 28px; font-size: 16px;">
           Falar com um Especialista
         </a>
       </div>
@@ -964,7 +1191,8 @@
           <div class="screen-side-zone">
             <div class="side-widget">
               <div class="side-widget-title">⛅ Blumenau, SC</div>
-              <div style="font-size: 20px; font-weight: 800;">27°C <span style="font-size: 12px; font-weight: 400; color: #94A3B8;">Ensolarado</span></div>
+              <div style="font-size: 20px; font-weight: 800;">27°C <span
+                  style="font-size: 12px; font-weight: 400; color: #94A3B8;">Ensolarado</span></div>
               <div style="font-size: 11px; color: #94A3B8; margin-top: 4px;">Máx 29°C / Mín 19°C</div>
             </div>
             <div class="side-widget">
@@ -974,13 +1202,15 @@
             </div>
             <div class="side-widget" style="background: rgba(234, 88, 12, 0.1); border-color: rgba(234, 88, 12, 0.3);">
               <div class="side-widget-title" style="color: #FB923C;">🔥 Destaque do Dia</div>
-              <div style="font-size: 12px; font-weight: 600;">Aumente o engajamento dos seus clientes em até 300% com telas dinâmicas.</div>
+              <div style="font-size: 12px; font-weight: 600;">Aumente o engajamento dos seus clientes em até 300% com
+                telas dinâmicas.</div>
             </div>
           </div>
           <!-- Rodapé de Notícias RSS -->
           <div class="screen-bottom-ticker">
             <span class="ticker-label">NOTÍCIAS AO VIVO</span>
-            <span>G1: Crescimento do varejo físico impulsiona adoção de telas de comunicação digital em lojas e franquias.</span>
+            <span>G1: Crescimento do varejo físico impulsiona adoção de telas de comunicação digital em lojas e
+              franquias.</span>
           </div>
         </div>
       </div>
@@ -1026,61 +1256,72 @@
         <div class="solution-card">
           <div class="solution-icon">🛒</div>
           <h3>Varejo & Supermercados</h3>
-          <p>Divulgue ofertas relâmpago, encartes digitais, promoções por setor e elimine de vez os custos e o trabalho com cartazes impressos.</p>
+          <p>Divulgue ofertas relâmpago, encartes digitais, promoções por setor e elimine de vez os custos e o trabalho
+            com cartazes impressos.</p>
         </div>
 
         <div class="solution-card">
           <div class="solution-icon">🏢</div>
           <h3>TV Corporativa & RH</h3>
-          <p>Conecte seus colaboradores, anuncie aniversariantes do mês, metas da equipe, avisos internos e comunicados institucionais com elegância.</p>
+          <p>Conecte seus colaboradores, anuncie aniversariantes do mês, metas da equipe, avisos internos e comunicados
+            institucionais com elegância.</p>
         </div>
 
         <div class="solution-card">
           <div class="solution-icon">🍔</div>
           <h3>Bares & Restaurantes</h3>
-          <p>Crie menus boards digitais com fotos atrativas de pratos, preços atualizados em tempo real e promoções para horários de almoço ou happy hour.</p>
+          <p>Crie menus boards digitais com fotos atrativas de pratos, preços atualizados em tempo real e promoções para
+            horários de almoço ou happy hour.</p>
         </div>
 
         <div class="solution-card">
           <div class="solution-icon">🏥</div>
           <h3>Clínicas & Consultórios</h3>
-          <p>Torne a sala de espera mais agradável e informativa com dicas de saúde, notícias ao vivo, orientações aos pacientes e chamadas.</p>
+          <p>Torne a sala de espera mais agradável e informativa com dicas de saúde, notícias ao vivo, orientações aos
+            pacientes e chamadas.</p>
         </div>
 
         <div class="solution-card">
           <div class="solution-icon">🏋️</div>
           <h3>Academias & Studios</h3>
-          <p>Exiba a grade de aulas coletivas, recordes dos alunos, orientações de treino e campanhas de novos planos de forma dinâmica.</p>
+          <p>Exiba a grade de aulas coletivas, recordes dos alunos, orientações de treino e campanhas de novos planos de
+            forma dinâmica.</p>
         </div>
 
         <div class="solution-card">
           <div class="solution-icon">🏡</div>
           <h3>Imobiliárias & Condomínios</h3>
-          <p>Apresente imóveis em destaque nas vitrines ou transmita avisos de assembleias e comunicados aos moradores nos elevadores.</p>
+          <p>Apresente imóveis em destaque nas vitrines ou transmita avisos de assembleias e comunicados aos moradores
+            nos elevadores.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Seção: Anuncie em Nossas Telas / Rede de Pontos Físicos -->
-  <section id="anuncie" style="background: radial-gradient(circle at 50% 0%, rgba(234, 88, 12, 0.08) 0%, rgba(11, 17, 32, 1) 70%); border-top: 1px solid var(--border); padding: 90px 0;">
+  <section id="anuncie"
+    style="background: radial-gradient(circle at 50% 0%, rgba(234, 88, 12, 0.08) 0%, rgba(11, 17, 32, 1) 70%); border-top: 1px solid var(--border); padding: 90px 0;">
     <div class="container">
       <div class="section-header">
         <div class="badge" style="background: rgba(234, 88, 12, 0.15); border-color: rgba(234, 88, 12, 0.4);">
           Publicidade Digital Out-of-Home (DOOH)
         </div>
         <h2>Anuncie Sua Marca na Rede de Telas Arco Indoor</h2>
-        <p>Coloque sua empresa diante de milhares de pessoas qualificadas todos os dias nos estabelecimentos de maior fluxo e retenção da região.</p>
+        <p>Coloque sua empresa diante de milhares de pessoas qualificadas todos os dias nos estabelecimentos de maior
+          fluxo e retenção da região.</p>
       </div>
 
       <!-- 1. Pontos Físicos de Exibição (Circuito Atual) -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
         <div>
           <h3 style="font-size: 20px; font-weight: 700; color: #FFF;">📍 Pontos Físicos & Circuito de Exibição</h3>
-          <p style="font-size: 14px; color: var(--text-muted);">Telas estrategicamente posicionadas em locais de alto consumo e tempo de espera.</p>
+          <p style="font-size: 14px; color: var(--text-muted);">Telas estrategicamente posicionadas em locais de alto
+            consumo e tempo de espera.</p>
         </div>
         <div style="font-size: 13px; color: #4ADE80; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 10px #22C55E;"></span>
+          <span
+            style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 10px #22C55E;"></span>
           Rede Operando em Tempo Real
         </div>
       </div>
@@ -1105,10 +1346,12 @@
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-              Telas na área de atendimento, cardápio digital e mesas de refeição. Alto tempo de permanência e atenção do cliente durante os pedidos.
+              Telas na área de atendimento, cardápio digital e mesas de refeição. Alto tempo de permanência e atenção do
+              cliente durante os pedidos.
             </p>
           </div>
-          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
+          <div
+            style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
             📺 Formato: 1080x1920 (Vertical) & 1920x1080
           </div>
         </div>
@@ -1132,10 +1375,12 @@
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-              Público de alta renda, com tempo médio de atendimento de 40 minutos em frente ao espelho e na área de recepção com sinuca e bar.
+              Público de alta renda, com tempo médio de atendimento de 40 minutos em frente ao espelho e na área de
+              recepção com sinuca e bar.
             </p>
           </div>
-          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
+          <div
+            style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
             📺 Formato: 1920x1080 (Horizontal TV Full)
           </div>
         </div>
@@ -1159,10 +1404,12 @@
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-              Sala de espera com atenção 100% voltada para a tela de avisos e TV informativa. Ideal para produtos de bem-estar, saúde e seguros.
+              Sala de espera com atenção 100% voltada para a tela de avisos e TV informativa. Ideal para produtos de
+              bem-estar, saúde e seguros.
             </p>
           </div>
-          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
+          <div
+            style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
             📺 Formato: 1920x1080 com notícias e clima
           </div>
         </div>
@@ -1186,10 +1433,12 @@
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-              Ambiente dinâmico com repetição contínua da sua mensagem. Perfeito para nutrição esportiva, vestuário, cursos e suplementação.
+              Ambiente dinâmico com repetição contínua da sua mensagem. Perfeito para nutrição esportiva, vestuário,
+              cursos e suplementação.
             </p>
           </div>
-          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
+          <div
+            style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #FB923C; font-weight: 600;">
             📺 Formato: 1080x1920 & 1920x1080
           </div>
         </div>
@@ -1198,14 +1447,17 @@
       <!-- 2. Cotas de Publicidade -->
       <div style="text-align: center; margin: 60px 0 30px;">
         <div class="badge">Planos de Inserção</div>
-        <h3 style="font-size: 28px; font-weight: 800; color: #FFF; margin-bottom: 8px;">Cotas de Patrocínio & Publicidade</h3>
-        <p style="font-size: 15px; color: var(--text-muted); max-width: 600px; margin: 0 auto;">Escolha como você quer que sua marca apareça. Preços fixos mensais sem pegadinhas.</p>
+        <h3 style="font-size: 28px; font-weight: 800; color: #FFF; margin-bottom: 8px;">Cotas de Patrocínio &
+          Publicidade</h3>
+        <p style="font-size: 15px; color: var(--text-muted); max-width: 600px; margin: 0 auto;">Escolha como você quer
+          que sua marca apareça. Preços fixos mensais sem pegadinhas.</p>
       </div>
 
       <div class="cotas-grid">
         <div class="cota-card">
           <div class="cota-name">Cota Ponto Local</div>
-          <div class="cota-desc">Ideal para negócios locais que querem dominar a audiência de um estabelecimento específico.</div>
+          <div class="cota-desc">Ideal para negócios locais que querem dominar a audiência de um estabelecimento
+            específico.</div>
           <div class="cota-price">
             R$ 99 <span>/mês</span>
           </div>
@@ -1217,7 +1469,8 @@
             <li>Troca de arte mensal inclusa</li>
             <li>Suporte técnico da equipe Arco</li>
           </ul>
-          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Ponto%20Local%20(R$%2099/m%C3%AAs)%20da%20Arco%20Indoor." target="_blank" class="btn btn-outline" style="text-align: center;">
+          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Ponto%20Local%20(R$%2099/m%C3%AAs)%20da%20Arco%20Indoor."
+            target="_blank" class="btn btn-outline" style="text-align: center;">
             Contratar Cota Local
           </a>
         </div>
@@ -1225,7 +1478,8 @@
         <div class="cota-card featured">
           <div class="cota-tag">Mais Escolhido</div>
           <div class="cota-name">Cota Circuito Completo</div>
-          <div class="cota-desc">Sua marca presente em todas as telas da cidade, gerando reconhecimento maciço e autoridade.</div>
+          <div class="cota-desc">Sua marca presente em todas as telas da cidade, gerando reconhecimento maciço e
+            autoridade.</div>
           <div class="cota-price" style="color: #FB923C;">
             R$ 249 <span>/mês</span>
           </div>
@@ -1238,7 +1492,8 @@
             <li><strong>Relatório Mensal de Impacto</strong></li>
             <li>Destaque nas faixas de horário nobre</li>
           </ul>
-          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Circuito%20Completo%20(R$%20249/m%C3%AAs)%20da%20Arco%20Indoor." target="_blank" class="btn btn-primary" style="text-align: center; font-size: 15px;">
+          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Circuito%20Completo%20(R$%20249/m%C3%AAs)%20da%20Arco%20Indoor."
+            target="_blank" class="btn btn-primary" style="text-align: center; font-size: 15px;">
             Contratar Circuito Completo
           </a>
         </div>
@@ -1258,42 +1513,57 @@
             <li><strong>Relatório de Auditoria Proof of Play</strong></li>
             <li>Assessoria na criação e adaptação de vídeos</li>
           </ul>
-          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Master%20Prime%20(R$%20449/m%C3%AAs)%20com%20exclusividade%20na%20Arco%20Indoor." target="_blank" class="btn btn-outline" style="text-align: center;">
+          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20Cota%20Master%20Prime%20(R$%20449/m%C3%AAs)%20com%20exclusividade%20na%20Arco%20Indoor."
+            target="_blank" class="btn btn-outline" style="text-align: center;">
             Contratar Cota Master
           </a>
         </div>
       </div>
 
       <!-- 3. Passo a Passo de Como Anunciar -->
-      <div style="background: rgba(19, 30, 50, 0.6); border: 1px solid var(--border); border-radius: 16px; padding: 36px 30px; margin-top: 50px;">
-        <h3 style="text-align: center; font-size: 22px; font-weight: 700; color: #FFF; margin-bottom: 24px;">Como Funciona o Processo de Anúncio</h3>
+      <div
+        style="background: rgba(19, 30, 50, 0.6); border: 1px solid var(--border); border-radius: 16px; padding: 36px 30px; margin-top: 50px;">
+        <h3 style="text-align: center; font-size: 22px; font-weight: 700; color: #FFF; margin-bottom: 24px;">Como
+          Funciona o Processo de Anúncio</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;">
           <div style="display: flex; gap: 14px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">1</div>
+            <div
+              style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
+              1</div>
             <div>
               <h4 style="font-size: 15px; font-weight: 700; color: #FFF; margin-bottom: 4px;">Escolha a Cota</h4>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Defina se prefere pontos locais ou o circuito completo e confirme com nossa equipe.</p>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Defina se prefere pontos locais ou
+                o circuito completo e confirme com nossa equipe.</p>
             </div>
           </div>
           <div style="display: flex; gap: 14px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">2</div>
+            <div
+              style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
+              2</div>
             <div>
               <h4 style="font-size: 15px; font-weight: 700; color: #FFF; margin-bottom: 4px;">Envie sua Mídia</h4>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Faça o upload do seu vídeo (MP4 até 15s) ou imagem pelo nosso link oficial sem complicação.</p>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Faça o upload do seu vídeo (MP4
+                até 15s) ou imagem pelo nosso link oficial sem complicação.</p>
             </div>
           </div>
           <div style="display: flex; gap: 14px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">3</div>
+            <div
+              style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
+              3</div>
             <div>
               <h4 style="font-size: 15px; font-weight: 700; color: #FFF; margin-bottom: 4px;">Validação & No Ar</h4>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Nossa equipe aprova a formatação técnica e as telas sincronizam sua campanha em até 2 horas.</p>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Nossa equipe aprova a formatação
+                técnica e as telas sincronizam sua campanha em até 2 horas.</p>
             </div>
           </div>
           <div style="display: flex; gap: 14px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">4</div>
+            <div
+              style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
+              4</div>
             <div>
               <h4 style="font-size: 15px; font-weight: 700; color: #FFF; margin-bottom: 4px;">Relatório de Prova</h4>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Receba os números oficiais de quantas vezes seu anúncio rodou em cada tela física.</p>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">Receba os números oficiais de
+                quantas vezes seu anúncio rodou em cada tela física.</p>
             </div>
           </div>
         </div>
@@ -1302,16 +1572,20 @@
         <div class="upload-cta-card">
           <div style="font-size: 32px;">📤</div>
           <div style="max-width: 600px;">
-            <h4 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 6px;">Já é Nosso Anunciante? Envie ou Atualize Sua Arte Agora</h4>
+            <h4 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 6px;">Já é Nosso Anunciante? Envie
+              ou Atualize Sua Arte Agora</h4>
             <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5;">
-              Use nosso portal exclusivo de solicitação para enviar o arquivo da sua nova campanha. Suporta vídeos MP4 de até 15 segundos e imagens em alta definição.
+              Use nosso portal exclusivo de solicitação para enviar o arquivo da sua nova campanha. Suporta vídeos MP4
+              de até 15 segundos e imagens em alta definição.
             </p>
           </div>
           <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-            <a href="/r/iOKCl8B1RzU3uMOFvJ0OsA" class="btn btn-primary" style="padding: 12px 28px; font-size: 14px; font-weight: 700;">
+            <a href="/r/iOKCl8B1RzU3uMOFvJ0OsA" class="btn btn-primary"
+              style="padding: 12px 28px; font-size: 14px; font-weight: 700;">
               Acessar Formulário de Envio de Mídia
             </a>
-            <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Sou%20anunciante%20e%20preciso%20de%20ajuda%20para%20formatar%20meu%20v%C3%ADdeo." target="_blank" class="btn btn-whatsapp" style="padding: 12px 20px; font-size: 14px;">
+            <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Sou%20anunciante%20e%20preciso%20de%20ajuda%20para%20formatar%20meu%20v%C3%ADdeo."
+              target="_blank" class="btn btn-whatsapp" style="padding: 12px 20px; font-size: 14px;">
               Suporte com a Arte no WhatsApp
             </a>
           </div>
@@ -1335,7 +1609,8 @@
           <div class="feature-icon-box">☁️</div>
           <div>
             <h3>Gestão em Nuvem Centralizada</h3>
-            <p>Acesse o painel administrativo pelo computador, tablet ou celular e atualize 1 ou 100 telas em segundos com poucos cliques.</p>
+            <p>Acesse o painel administrativo pelo computador, tablet ou celular e atualize 1 ou 100 telas em segundos
+              com poucos cliques.</p>
           </div>
         </div>
 
@@ -1343,7 +1618,8 @@
           <div class="feature-icon-box">📺</div>
           <div>
             <h3>App Nativo Para TV Box & Android</h3>
-            <p>Nosso player foi otimizado para ligar direto junto com a TV, reconectar sozinho à rede e consumir o mínimo de memória.</p>
+            <p>Nosso player foi otimizado para ligar direto junto com a TV, reconectar sozinho à rede e consumir o
+              mínimo de memória.</p>
           </div>
         </div>
 
@@ -1351,7 +1627,8 @@
           <div class="feature-icon-box">📰</div>
           <div>
             <h3>Feeds de Notícias & Clima Automáticos</h3>
-            <p>Mantenha suas telas sempre atraentes com notícias atualizadas em tempo real (G1, UOL, etc.), cotações e clima local.</p>
+            <p>Mantenha suas telas sempre atraentes com notícias atualizadas em tempo real (G1, UOL, etc.), cotações e
+              clima local.</p>
           </div>
         </div>
 
@@ -1359,7 +1636,8 @@
           <div class="feature-icon-box">🎞️</div>
           <div>
             <h3>Suporte Amplo de Mídias</h3>
-            <p>Reproduza vídeos em alta definição (MP4), imagens (JPG, PNG), links web ao vivo, vídeos do YouTube e páginas HTML.</p>
+            <p>Reproduza vídeos em alta definição (MP4), imagens (JPG, PNG), links web ao vivo, vídeos do YouTube e
+              páginas HTML.</p>
           </div>
         </div>
 
@@ -1367,7 +1645,8 @@
           <div class="feature-icon-box">🛡️</div>
           <div>
             <h3>Operação Confiável Sem Quedas</h3>
-            <p>Se a internet cair, o player não interrompe a exibição. Todo o conteúdo é guardado no armazenamento local do dispositivo.</p>
+            <p>Se a internet cair, o player não interrompe a exibição. Todo o conteúdo é guardado no armazenamento local
+              do dispositivo.</p>
           </div>
         </div>
 
@@ -1375,7 +1654,8 @@
           <div class="feature-icon-box">📊</div>
           <div>
             <h3>Relatórios & Monitoramento em Tempo Real</h3>
-            <p>Acompanhe o status online/offline de cada tela, registros de exibição e estatísticas de uso em um painel detalhado.</p>
+            <p>Acompanhe o status online/offline de cada tela, registros de exibição e estatísticas de uso em um painel
+              detalhado.</p>
           </div>
         </div>
       </div>
@@ -1395,19 +1675,22 @@
         <div class="step-card">
           <div class="step-number">1</div>
           <h3>Conecte o Player na TV</h3>
-          <p>Ligue sua TV Box ou Smart TV na entrada HDMI, conecte ao Wi-Fi e abra o aplicativo <strong>Arco Indoor Player</strong>.</p>
+          <p>Ligue sua TV Box ou Smart TV na entrada HDMI, conecte ao Wi-Fi e abra o aplicativo <strong>Arco Indoor
+              Player</strong>.</p>
         </div>
 
         <div class="step-card">
           <div class="step-number">2</div>
           <h3>Emparelhe com Seu Painel</h3>
-          <p>Digite o código de 6 dígitos exibido na TV diretamente no seu painel web para vincular a tela instantaneamente.</p>
+          <p>Digite o código de 6 dígitos exibido na TV diretamente no seu painel web para vincular a tela
+            instantaneamente.</p>
         </div>
 
         <div class="step-card">
           <div class="step-number">3</div>
           <h3>Crie e Publique</h3>
-          <p>Monte suas playlists, divida a tela em zonas ou agende conteúdos. Suas TVs atualizam sozinhas em tempo real!</p>
+          <p>Monte suas playlists, divida a tela em zonas ou agende conteúdos. Suas TVs atualizam sozinhas em tempo
+            real!</p>
         </div>
       </div>
     </div>
@@ -1444,27 +1727,34 @@
       <div class="faq-list">
         <details class="faq-item">
           <summary>Qual equipamento eu preciso ter para usar o Arco Indoor?</summary>
-          <p>Qualquer TV ou monitor com entrada HDMI e uma TV Box com sistema Android (ou uma Smart TV Android TV / Google TV). O aplicativo Arco Indoor Player é instalado facilmente e inicia sozinho sempre que o aparelho é ligado.</p>
+          <p>Qualquer TV ou monitor com entrada HDMI e uma TV Box com sistema Android (ou uma Smart TV Android TV /
+            Google TV). O aplicativo Arco Indoor Player é instalado facilmente e inicia sozinho sempre que o aparelho é
+            ligado.</p>
         </details>
 
         <details class="faq-item">
           <summary>O que acontece se a internet do meu estabelecimento cair?</summary>
-          <p>Nada! Suas telas continuam funcionando normalmente. O Arco Indoor foi desenvolvido com tecnologia de armazenamento em cache local, garantindo que vídeos, imagens e programações continuem rodando sem interrupções mesmo sem conexão.</p>
+          <p>Nada! Suas telas continuam funcionando normalmente. O Arco Indoor foi desenvolvido com tecnologia de
+            armazenamento em cache local, garantindo que vídeos, imagens e programações continuem rodando sem
+            interrupções mesmo sem conexão.</p>
         </details>
 
         <details class="faq-item">
           <summary>Posso programar conteúdos diferentes para horários diferentes?</summary>
-          <p>Sim! Você pode programar campanhas específicas para a manhã, tarde ou noite, além de programar promoções automáticas para determinados dias da semana ou datas sazonais.</p>
+          <p>Sim! Você pode programar campanhas específicas para a manhã, tarde ou noite, além de programar promoções
+            automáticas para determinados dias da semana ou datas sazonais.</p>
         </details>
 
         <details class="faq-item">
           <summary>Quantas telas consigo gerenciar em uma mesma conta?</summary>
-          <p>Não há limite. Você pode gerenciar desde 1 tela em uma pequena loja até centenas de telas espalhadas por várias filiais ou cidades a partir de um único painel em nuvem.</p>
+          <p>Não há limite. Você pode gerenciar desde 1 tela em uma pequena loja até centenas de telas espalhadas por
+            várias filiais ou cidades a partir de um único painel em nuvem.</p>
         </details>
 
         <details class="faq-item">
           <summary>Vocês fornecem suporte para implantação?</summary>
-          <p>Sim! Nossa equipe da Arco Tech Sistemas oferece suporte humanizado e orientação completa para configuração de suas telas e otimização dos seus layouts.</p>
+          <p>Sim! Nossa equipe da Arco Tech Sistemas oferece suporte humanizado e orientação completa para configuração
+            de suas telas e otimização dos seus layouts.</p>
         </details>
       </div>
     </div>
@@ -1480,7 +1770,8 @@
           <a href="/app" class="btn btn-primary" style="padding: 14px 32px; font-size: 16px;">
             Acessar o Painel Agora
           </a>
-          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Quero%20conversar%20sobre%20o%20Arco%20Indoor" target="_blank" class="btn btn-whatsapp" style="padding: 14px 28px; font-size: 16px;">
+          <a href="https://wa.me/5547997026699?text=Ol%C3%A1!%20Quero%20conversar%20sobre%20o%20Arco%20Indoor"
+            target="_blank" class="btn btn-whatsapp" style="padding: 14px 28px; font-size: 16px;">
             Falar no WhatsApp: (47) 99702-6699
           </a>
         </div>
@@ -1498,7 +1789,8 @@
             <div class="brand-title">Arco <span>Indoor</span></div>
           </div>
           <p>
-            Desenvolvido por <strong>Arco Tech Sistemas</strong>. Soluções inovadoras em sinalização digital, TV corporativa e automação para empresas.
+            Desenvolvido por <strong>Arco Tech Sistemas</strong>. Soluções inovadoras em sinalização digital, TV
+            corporativa e automação para empresas.
           </p>
           <p style="margin-top: 10px; font-size: 12px; color: #64748B;">
             CNPJ: 61.289.782/0001-15<br>
@@ -1531,7 +1823,8 @@
         <div class="footer-col">
           <h4>Atendimento</h4>
           <ul>
-            <li><a href="https://wa.me/5547997026699" target="_blank" style="color: #4ADE80; font-weight: 600;">📱 (47) 99702-6699</a></li>
+            <li><a href="https://wa.me/5547997026699" target="_blank" style="color: #4ADE80; font-weight: 600;">📱 (47)
+                99702-6699</a></li>
             <li><a href="mailto:contato@arcosistemas.com.br">contato@arcosistemas.com.br</a></li>
             <li><a href="https://arcosistemas.com.br" target="_blank">arcosistemas.com.br</a></li>
           </ul>
@@ -1694,4 +1987,5 @@
     });
   </script>
 </body>
+
 </html>

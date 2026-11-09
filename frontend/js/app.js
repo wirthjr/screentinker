@@ -17,6 +17,7 @@ import * as dataSources from './views/data-sources.js';
 import * as reviews from './views/reviews.js';
 import * as contentRequests from './views/requests.js';
 import * as videoWall from './views/video-wall.js';
+import * as liveCameras from './views/live-cameras.js';
 import * as reports from './views/reports.js';
 import * as audience from './views/audience.js';
 import * as servers from './views/servers.js';
@@ -276,6 +277,7 @@ const NAV_LABEL_KEYS = {
   social: 'nav.social',
   alerts: 'nav.alerts',
   'site-caches': 'nav.site_caches',
+  'live-cameras': 'nav.live_cameras',
   'emergency-feeds': 'nav.emergency_feeds',
   automation: 'nav.automation',
   // corporate is relabelled per viewer (Corporate / Head office) by syncCorporateNav.
@@ -711,6 +713,7 @@ function route() {
     else if ((hash === '#/data-sources' || hash.startsWith('#/data-sources/')) && link.dataset.view === 'data-sources') link.classList.add('active');
     else if ((hash.startsWith('#/wall') || hash === '#/walls') && link.dataset.view === 'walls') link.classList.add('active');
     else if (hash === '#/site-caches' && link.dataset.view === 'site-caches') link.classList.add('active');
+    else if (hash === '#/live-cameras' && link.dataset.view === 'live-cameras') link.classList.add('active');
     else if (hash === '#/reports' && link.dataset.view === 'reports') link.classList.add('active');
     else if (hash === '#/audience' && link.dataset.view === 'audience') link.classList.add('active');
     else if ((hash === '#/experiments' || hash.startsWith('#/experiments/')) && link.dataset.view === 'experiments') link.classList.add('active');
@@ -799,6 +802,9 @@ function route() {
     // 3.0 site caches (docs/site-cache.md): LAN cache boxes, their status and which screens use them.
     currentView = siteCaches;
     siteCaches.render(app);
+  } else if (hash === '#/live-cameras') {
+    currentView = liveCameras;
+    liveCameras.render(app);
   } else if (hash === '#/alerts') {
     currentView = alerts;
     alerts.render(app);

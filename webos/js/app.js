@@ -100,7 +100,7 @@
     if (frame) { try { stage.removeChild(frame); } catch (e) {} frame = null; }
     playerReady = false;
     frame = document.createElement('iframe');
-    frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+    frame.setAttribute('allow', 'camera; microphone; autoplay; fullscreen; encrypted-media');
     frame.src = playerUrl();
     stage.appendChild(frame);
     $('setup').classList.add('hidden');

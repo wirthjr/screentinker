@@ -46,8 +46,8 @@ android {
         targetSdk = 36
         // Env-overridable so device-owner reinstalls (which require an ever-increasing
         // versionCode — downgrades are blocked) don't churn this file each build.
-        versionCode = (System.getenv("VERSION_CODE") ?: findProperty("VERSION_CODE") as String? ?: "189").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: findProperty("VERSION_NAME") as String? ?: "3.1.6"
+        versionCode = (System.getenv("VERSION_CODE") ?: findProperty("VERSION_CODE") as String? ?: "192").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: findProperty("VERSION_NAME") as String? ?: "3.1.9"
     }
 
     signingConfigs {
@@ -223,16 +223,19 @@ tasks.register<Exec>("resignReleaseV1") {
     val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
     onlyIf { apk.exists() }
     doFirst {
-        val sdkDir = System.getenv("ANDROID_HOME")
+        val rawSdkDir = System.getenv("ANDROID_HOME")
             ?: System.getenv("ANDROID_SDK_ROOT")
             ?: rootProject.file("local.properties").takeIf { it.exists() }
                 ?.readLines()?.firstOrNull { it.startsWith("sdk.dir=") }?.substringAfter("=")?.trim()
             ?: throw GradleException("#81 resign: set ANDROID_HOME or sdk.dir in local.properties")
+        val sdkDir = rawSdkDir.replace("\\:", ":").replace("\\\\", "/")
         val buildTools = File(sdkDir, "build-tools").listFiles()
             ?.filter { it.isDirectory }?.maxByOrNull { it.name }
             ?: throw GradleException("#81 resign: no build-tools found under $sdkDir")
+        val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows
+        val apksignerName = if (isWindows) "apksigner.bat" else "apksigner"
         commandLine(
-            File(buildTools, "apksigner").absolutePath, "sign",
+            File(buildTools, apksignerName).absolutePath, "sign",
             "--ks", file("../release-key.jks").absolutePath,
             "--ks-key-alias", (System.getenv("KEY_ALIAS") ?: "remotedisplay"),
             "--ks-pass", "pass:" + (System.getenv("KEYSTORE_PASSWORD") ?: "arcoplay2026"),

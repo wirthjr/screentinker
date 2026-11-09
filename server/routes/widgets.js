@@ -867,6 +867,7 @@ function renderWidgetHtml(type, config, opts = {}) {
     case 'directory-search': return opts.legacyDataFrame ? renderLegacyDirectorySearch(config, opts.workspaceId) : renderDirectorySearch(config);
     case 'cloud-doc': return require('../lib/cloud-docs').renderCloudDoc(config);
     case 'diag-smoothness': return renderDiagSmoothness(config);
+    case 'camera': return renderCamera(config, opts);
     // Only reached by the editor's Preview: a saved widget's /render is handled above.
     case 'bi-dashboard': return require('../lib/bi/widget').previewHtml(config);
     /*
@@ -1138,8 +1139,13 @@ router.get('/:id/render', async (req, res) => {
       iframeSandbox, legacyDataFrame: true, weatherSnapshot: snapshot,
     })));
   }
+  if (widget.widget_type === 'camera') {
+    res.setHeader('Permissions-Policy', 'camera=*, microphone=*');
+    res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: mediastream: https: http: wss: ws:; media-src 'self' blob: data: mediastream: https: http:; img-src 'self' blob: data: https: http:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+  }
   res.send(renderWidgetHtml(widget.widget_type, config, {
     iframeSandbox,
+    deviceId: req.query.device || null,
     // SSSP3's old WebKit does not paint nested documents reliably from the
     // panel's offline file:// cache. Its compatibility renderer is therefore
     // a static-text fallback, not author HTML flattened into the local origin.
@@ -1305,7 +1311,10 @@ router.post('/preview', (req, res) => {
   // dashboard's origin, so if the response is ever loaded as a document it runs opaque, not as the
   // origin whose localStorage holds the session.
   if (widget_type === 'cloud-doc') res.setHeader('Content-Security-Policy', require('../lib/cloud-docs').RENDER_CSP);
-  else res.setHeader('Content-Security-Policy', `sandbox ${PREVIEW_IFRAME_SANDBOX}`);
+  else if (widget_type === 'camera') {
+    res.setHeader('Permissions-Policy', 'camera=*, microphone=*');
+    res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: mediastream: https: http: wss: ws:; media-src 'self' blob: data: mediastream: https: http:; img-src 'self' blob: data: https: http:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; sandbox allow-scripts allow-same-origin");
+  } else res.setHeader('Content-Security-Policy', `sandbox ${PREVIEW_IFRAME_SANDBOX}`);
   res.send(html);
 });
 
@@ -1359,9 +1368,481 @@ router.get('/preview-session/:id', (req, res) => {
   // holds the session. Raw author HTML is already isolated one level down (renderText's srcdoc
   // iframe); this keeps the wrapper, and anything a future widget type emits, opaque as well.
   if (entry.widget_type === 'cloud-doc') res.setHeader('Content-Security-Policy', require('../lib/cloud-docs').RENDER_CSP);
-  else res.setHeader('Content-Security-Policy', `sandbox ${PREVIEW_IFRAME_SANDBOX}`);
+  else if (entry.widget_type === 'camera') {
+    res.setHeader('Permissions-Policy', 'camera=*, microphone=*');
+    res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: mediastream: https: http: wss: ws:; media-src 'self' blob: data: mediastream: https: http:; img-src 'self' blob: data: https: http:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; sandbox allow-scripts allow-same-origin");
+  } else res.setHeader('Content-Security-Policy', `sandbox ${PREVIEW_IFRAME_SANDBOX}`);
   res.send(html);
 });
+
+function renderCamera(c = {}, opts = {}) {
+  const deviceId = (opts && opts.deviceId) || c.device_id || null;
+  const isScreenCamera = c.source_type === 'screen_camera';
+  const sourceType = (c.source_type === 'stream' || isScreenCamera) ? 'stream' : 'device';
+  const targetDeviceId = c.target_device_id || '';
+  let streamUrl = c.stream_url ? safeUrl(c.stream_url) : '';
+  if (isScreenCamera && targetDeviceId) {
+    streamUrl = `/api/devices/${encodeURIComponent(targetDeviceId)}/camera/live.mjpg`;
+  }
+  const facing = c.camera_facing === 'environment' ? 'environment' : (c.camera_facing === 'any' ? 'any' : 'user');
+  const mirror = c.mirror === true || (c.mirror !== false && facing === 'user');
+  const fit = ['contain', 'fill'].includes(c.fit) ? c.fit : 'cover';
+  const audio = c.audio === true;
+  const showBadge = c.show_badge !== false;
+  const badgeText = escapeHtml(c.badge_text || 'AO VIVO');
+  const title = c.title ? escapeHtml(c.title) : '';
+  const showClock = c.show_clock === true;
+  const bgColor = c.background || '#000000';
+
+  const safeConfigJson = JSON.stringify({
+    deviceId,
+    sourceType,
+    facing,
+    mirror,
+    fit,
+    audio,
+    streamUrl,
+  }).replace(/</g, '\\u003c');
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title || 'Câmera ao Vivo'}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:${escapeHtml(bgColor)}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  #container { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  #cameraVideo, #cameraImg {
+    width:100%; height:100%;
+    object-fit:${fit};
+    ${mirror ? 'transform: scaleX(-1); -webkit-transform: scaleX(-1);' : ''}
+    background: #000;
+  }
+  .overlay-badge {
+    position:absolute; top:24px; left:24px; z-index:10;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(0, 0, 0, 0.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255, 255, 255, 0.2);
+    padding:6px 14px; border-radius:20px;
+    color:#fff; font-size:14px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+  }
+  .pulse-dot {
+    width:10px; height:10px; border-radius:50%; background:#ff3b30;
+    box-shadow: 0 0 8px #ff3b30;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { transform:scale(0.95); opacity:0.8; box-shadow:0 0 0 0 rgba(255,59,48,0.7); }
+    70% { transform:scale(1.2); opacity:1; box-shadow:0 0 0 8px rgba(255,59,48,0); }
+    100% { transform:scale(0.95); opacity:0.8; box-shadow:0 0 0 0 rgba(255,59,48,0); }
+  }
+  .overlay-title {
+    position:absolute; bottom:24px; left:24px; z-index:10;
+    background:rgba(0, 0, 0, 0.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255, 255, 255, 0.15);
+    padding:8px 18px; border-radius:8px;
+    color:#fff; font-size:18px; font-weight:600;
+  }
+  .overlay-clock {
+    position:absolute; top:24px; right:24px; z-index:10;
+    background:rgba(0, 0, 0, 0.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border:1px solid rgba(255, 255, 255, 0.15);
+    padding:6px 14px; border-radius:8px;
+    color:#fff; font-family:monospace; font-size:16px; font-weight:700;
+  }
+  #errorStatus {
+    position:absolute; inset:0; z-index:5;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(10, 10, 15, 0.95); color:#fff; text-align:center; padding:20px;
+  }
+  .error-icon { font-size:56px; margin-bottom:16px; opacity:0.8; }
+  .error-title { font-size:22px; font-weight:600; margin-bottom:8px; }
+  .error-desc { font-size:15px; color:#aaa; max-width:480px; line-height:1.4; }
+  .error-retry { margin-top:16px; font-size:13px; color:#888; }
+</style>
+</head>
+<body>
+<div id="container">
+  <video id="cameraVideo" autoplay playsinline ${audio ? '' : 'muted'}></video>
+  <img id="cameraImg" style="display:none;" alt="Stream" />
+
+  ${showBadge ? `<div class="overlay-badge"><span class="pulse-dot"></span><span>${badgeText}</span></div>` : ''}
+  ${title ? `<div class="overlay-title">${title}</div>` : ''}
+  ${showClock ? `<div class="overlay-clock" id="clock">00:00:00</div>` : ''}
+
+  <div id="errorStatus">
+    <div class="error-icon">&#128249;</div>
+    <div class="error-title" id="errTitle">Iniciando câmera...</div>
+    <div class="error-desc" id="errDesc">Aguardando permissão ou conexão do dispositivo de vídeo.</div>
+    <div class="error-retry">Tentando conectar automaticamente...</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var CFG = ${safeConfigJson};
+  var video = document.getElementById('cameraVideo');
+  var img = document.getElementById('cameraImg');
+  var errBox = document.getElementById('errorStatus');
+  var errTitle = document.getElementById('errTitle');
+  var errDesc = document.getElementById('errDesc');
+  var clockEl = document.getElementById('clock');
+  var activeStream = null;
+  var retryTimer = null;
+
+  if (clockEl) {
+    function updateClock() {
+      var d = new Date();
+      var h = String(d.getHours()).padStart(2, '0');
+      var m = String(d.getMinutes()).padStart(2, '0');
+      var s = String(d.getSeconds()).padStart(2, '0');
+      clockEl.textContent = h + ':' + m + ':' + s;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  function showError(title, desc) {
+    if (errTitle) errTitle.textContent = title;
+    if (errDesc) errDesc.textContent = desc;
+    if (errBox) errBox.style.display = 'flex';
+  }
+
+  function hideError() {
+    if (errBox) errBox.style.display = 'none';
+  }
+
+  function scheduleRetry(delayMs) {
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(function() {
+      retryTimer = null;
+      if (!activeStream) {
+        startDeviceCamera();
+      }
+    }, delayMs || 2500);
+  }
+
+  function handleInterruption(title, message) {
+    if (activeStream) {
+      try {
+        activeStream.getTracks().forEach(function(t) { t.stop(); });
+      } catch(e) {}
+      activeStream = null;
+    }
+    try { video.srcObject = null; } catch(e) {}
+    showError(title || 'Câmera ocupada', message || 'A câmera está sendo utilizada por outro aplicativo ou foi desconectada. Reconectando...');
+    scheduleRetry(2000);
+  }
+
+  function attachTrackListeners(stream) {
+    var vTracks = stream.getVideoTracks();
+    vTracks.forEach(function(track) {
+      track.onended = function() {
+        console.warn('[CameraWidget] Video track ended / preempted by system');
+        handleInterruption('Câmera ocupada', 'A câmera foi temporariamente ocupada por outro recurso. Aguardando liberação...');
+      };
+      track.onmute = function() {
+        console.warn('[CameraWidget] Video track muted');
+      };
+      track.onunmute = function() {
+        console.log('[CameraWidget] Video track unmuted');
+        hideError();
+      };
+    });
+  }
+
+  video.onerror = function() {
+    console.warn('[CameraWidget] Video element playback error');
+    handleInterruption('Erro no stream de vídeo', 'Tentando reconectar...');
+  };
+
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !activeStream) {
+      scheduleRetry(500);
+    }
+  });
+
+  window.addEventListener('focus', function() {
+    if (!activeStream) {
+      scheduleRetry(500);
+    }
+  });
+
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', function() {
+      if (!activeStream) {
+        scheduleRetry(1000);
+      }
+    });
+  }
+
+  function startDeviceCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showError('Câmera não suportada', 'Este navegador ou dispositivo não oferece suporte à captura de vídeo via WebRTC/MediaDevices.');
+      return;
+    }
+
+    var constraints = {
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
+      audio: !!CFG.audio
+    };
+
+    if (CFG.facing === 'user' || CFG.facing === 'environment') {
+      constraints.video.facingMode = { ideal: CFG.facing };
+    }
+
+    function doRequest(c) {
+      return navigator.mediaDevices.getUserMedia(c)
+        .then(function(stream) {
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
+          activeStream = stream;
+          video.srcObject = stream;
+          attachTrackListeners(stream);
+          video.onloadedmetadata = function() {
+            video.play().catch(function(e) {
+              console.warn('[CameraWidget] Autoplay blocked, retrying muted', e);
+              video.muted = true;
+              video.play().catch(function(_) {});
+            });
+          };
+          hideError();
+        });
+    }
+
+    doRequest(constraints).catch(function(err) {
+      console.warn('[CameraWidget] Failed with ideal constraints, retrying basic video', err);
+      doRequest({ video: true, audio: !!CFG.audio }).catch(function(e) {
+        console.error('[CameraWidget] getUserMedia error:', e);
+        var msg = 'Permissão de câmera recusada ou câmera em uso por outro aplicativo.';
+        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+          msg = 'Permissão para acessar a câmera foi recusada nas configurações do sistema ou do navegador.';
+        } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+          msg = 'Nenhuma câmera conectada ao dispositivo.';
+        } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+          msg = 'A câmera está sendo utilizada exclusivamente por outro recurso. Aguardando liberação...';
+        }
+        showError('Câmera ocupada ou indisponível', msg);
+        scheduleRetry(2500);
+      });
+    });
+  }
+
+  function startStream() {
+    var url = CFG.streamUrl;
+    if (!url) {
+      showError('URL não configurada', 'Configure o endereço do stream de vídeo no editor do widget.');
+      return;
+    }
+
+    var isHls = url.indexOf('.m3u8') !== -1;
+    var isMjpeg = url.indexOf('.mjpg') !== -1 || url.indexOf('.mjpeg') !== -1 || url.indexOf('action=stream') !== -1;
+
+    var isLiveCamera = url.indexOf('/camera/live.mjpg') !== -1;
+    if (isLiveCamera || isMjpeg) {
+      video.style.display = 'none';
+      img.style.display = 'block';
+
+      var wsSub = null;
+      var lastBlobUrl = null;
+      var hasReceivedWsFrame = false;
+
+      function fallbackToMjpeg() {
+        if (hasReceivedWsFrame) return;
+        img.src = url;
+        img.onerror = function() {
+          showError('Erro no stream MJPEG', 'Não foi possível carregar a imagem/stream da câmera.');
+          setTimeout(function() { img.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_t=' + Date.now(); }, 4000);
+        };
+        img.onload = function() { hideError(); };
+      }
+
+      if (isLiveCamera) {
+        try {
+          var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+          var parts = url.split('/api/devices/');
+          var targetDevId = parts.length > 1 ? parts[1].split('/')[0] : '';
+          if (targetDevId) {
+            var wsUrl = proto + '//' + location.host + '/api/devices/' + encodeURIComponent(targetDevId) + '/camera/live.ws?role=sub';
+            wsSub = new WebSocket(wsUrl);
+            wsSub.binaryType = 'blob';
+            wsSub.onmessage = function(e) {
+              if (e.data) {
+                hasReceivedWsFrame = true;
+                hideError();
+                var newUrl = URL.createObjectURL(e.data);
+                var oldUrl = lastBlobUrl;
+                img.onload = function() {
+                  if (oldUrl) URL.revokeObjectURL(oldUrl);
+                };
+                img.src = newUrl;
+                lastBlobUrl = newUrl;
+              }
+            };
+            wsSub.onerror = function() {
+              if (!hasReceivedWsFrame) fallbackToMjpeg();
+            };
+            wsSub.onclose = function() {
+              if (!hasReceivedWsFrame) fallbackToMjpeg();
+            };
+          } else {
+            fallbackToMjpeg();
+          }
+        } catch (_) {
+          fallbackToMjpeg();
+        }
+      } else {
+        fallbackToMjpeg();
+      }
+      return;
+    }
+
+    if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+      video.play().catch(function() { video.muted = true; video.play().catch(function(){}); });
+      hideError();
+    } else if (isHls && window.Hls) {
+      var hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        video.play().catch(function() { video.muted = true; video.play().catch(function(){}); });
+      });
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        if (data.fatal) {
+          showError('Falha no stream HLS', 'Erro ao carregar o feed de vídeo da rede.');
+        }
+      });
+      hideError();
+    } else {
+      video.src = url;
+      video.play().catch(function() { video.muted = true; video.play().catch(function(){}); });
+      video.onerror = function() {
+        showError('Erro no stream', 'Não foi possível reproduzir o stream de vídeo informado.');
+      };
+      video.onloadeddata = function() { hideError(); };
+    }
+  }
+
+  if (CFG.sourceType === 'stream') {
+    startStream();
+  } else {
+    startDeviceCamera();
+  }
+
+  var relayTimer = null;
+  var wsPub = null;
+  var wsPubReady = false;
+
+  if (CFG.deviceId && CFG.sourceType === 'device') {
+    var offscreenCanvas = document.createElement('canvas');
+    var isSending = false;
+    var isRelayRunning = true;
+
+    function initPublisherWs() {
+      if (!isRelayRunning) return;
+      try {
+        var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var wsUrl = proto + '//' + location.host + '/api/devices/' + encodeURIComponent(CFG.deviceId) + '/camera/live.ws?role=pub';
+        wsPub = new WebSocket(wsUrl);
+        wsPub.onopen = function() {
+          wsPubReady = true;
+        };
+        wsPub.onclose = function() {
+          wsPubReady = false;
+          if (isRelayRunning) setTimeout(initPublisherWs, 3000);
+        };
+        wsPub.onerror = function() {
+          wsPubReady = false;
+        };
+      } catch (_) {
+        wsPubReady = false;
+      }
+    }
+    initPublisherWs();
+
+    function scheduleNextFrame(delayMs) {
+      if (!isRelayRunning) return;
+      if (relayTimer) clearTimeout(relayTimer);
+      relayTimer = setTimeout(sendRelayFrame, delayMs || 70);
+    }
+
+    function sendRelayFrame() {
+      if (!isRelayRunning) return;
+      if (!activeStream || !video || video.videoWidth === 0 || isSending) {
+        scheduleNextFrame(100);
+        return;
+      }
+      try {
+        var w = 480;
+        var h = Math.round(480 * (video.videoHeight / video.videoWidth)) || 270;
+        if (offscreenCanvas.width !== w) offscreenCanvas.width = w;
+        if (offscreenCanvas.height !== h) offscreenCanvas.height = h;
+        var ctx = offscreenCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        isSending = true;
+
+        offscreenCanvas.toBlob(function(blob) {
+          if (!blob || !isRelayRunning) {
+            isSending = false;
+            scheduleNextFrame(80);
+            return;
+          }
+
+          if (wsPubReady && wsPub && wsPub.readyState === 1 /* OPEN */) {
+            try {
+              wsPub.send(blob);
+              isSending = false;
+              scheduleNextFrame(70); // ~14 FPS fluidos
+              return;
+            } catch (_) {
+              wsPubReady = false;
+            }
+          }
+
+          fetch('/api/devices/' + encodeURIComponent(CFG.deviceId) + '/camera-frame', {
+            method: 'POST',
+            body: blob,
+            headers: { 'Content-Type': 'image/jpeg' }
+          }).then(function() {
+            isSending = false;
+            scheduleNextFrame(70);
+          }).catch(function() {
+            isSending = false;
+            scheduleNextFrame(150);
+          });
+        }, 'image/jpeg', 0.45);
+      } catch (err) {
+        isSending = false;
+        scheduleNextFrame(150);
+      }
+    }
+    scheduleNextFrame(1500);
+  }
+
+  window.addEventListener('beforeunload', function() {
+    isRelayRunning = false;
+    if (activeStream) {
+      activeStream.getTracks().forEach(function(t) { t.stop(); });
+    }
+    if (retryTimer) clearTimeout(retryTimer);
+    if (relayTimer) clearTimeout(relayTimer);
+    if (wsPub) { try { wsPub.close(); } catch(e) {} }
+    if (typeof wsSub !== 'undefined' && wsSub) { try { wsSub.close(); } catch(e) {} }
+    if (typeof lastBlobUrl !== 'undefined' && lastBlobUrl) { try { URL.revokeObjectURL(lastBlobUrl); } catch(e) {} }
+  });
+})();
+</script>
+</body>
+</html>`;
+}
 
 function renderClock(c, legacy = false) {
   const legacyTable = legacy ? require('../lib/tz-table').tzTable(safeTimezone(c.timezone), Date.now(), 400 * 24 * 3600 * 1000) : null;
@@ -1707,7 +2188,7 @@ function renderRSS(c, opts = {}) {
         if (cfg.images && items[i].image) {
           var tp = el('span', 'tp'); var th = Math.round(cfg.font * 1.7);
           tp.style.height = th + 'px'; tp.style.width = Math.round(th * 16 / 9) + 'px';
-          tp.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\n]/g, '') + '")';
+          tp.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\\\\r\\n]/g, '') + '")';
           it.appendChild(tp);
         }
         it.appendChild(el('span', 'title', items[i].title)); strip.appendChild(it);
@@ -1752,7 +2233,7 @@ function renderRSS(c, opts = {}) {
     var cards = [];
     for (var i = 0; i < items.length; i++) {
       var c = el('div', 'hl');
-      if (cfg.images && items[i].image) { var p = el('div', 'pic'); p.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\n]/g, '') + '")'; c.appendChild(p); }
+      if (cfg.images && items[i].image) { var p = el('div', 'pic'); p.style.backgroundImage = 'url("' + String(items[i].image).replace(/["\\\\\\r\\n]/g, '') + '")'; c.appendChild(p); }
       var tx = el('div', 'txt');
       tx.appendChild(el('div', 't', items[i].title));
       if (items[i].summary) tx.appendChild(el('div', 's', items[i].summary));

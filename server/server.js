@@ -127,6 +127,12 @@ try {
 } catch (e) {
   console.warn('[screen-share] signalling WS not attached:', e && e.message);
 }
+// Live camera frame WebSocket hub (streaming ultra-rápido entre telas)
+try {
+  require('./lib/live-camera-hub').attach(server);
+} catch (e) {
+  console.warn('[live-camera-hub] WS hub not attached:', e && e.message);
+}
 
 // Middleware
 const helmet = require('helmet');
@@ -748,17 +754,19 @@ app.get(['/flash', '/flash/'], (req, res) => {
 // Serve frontend static files
 // JS/CSS/HTML: no-cache (always revalidate, uses ETag/304)
 // Images/fonts/icons: long cache for Cloudflare + browser
-app.use(express.static(config.frontendDir, { index: false, etag: true, lastModified: true, setHeaders: (res, filePath) => {
-  if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
-    res.setHeader('Cache-Control', 'no-cache');
-  } else if (/\.(png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|webp|mp4|webm)$/i.test(filePath)) {
-    res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 days
-  }
-  // The Power BI client and Leaflet are loaded by widget pages (bi-dashboard, radar) that a player
-  // frames in a sandboxed (opaque-origin) iframe — helmet's same-origin CORP would block them there.
-  if (filePath.includes(`${path.sep}vendor${path.sep}powerbi${path.sep}`)
+app.use(express.static(config.frontendDir, {
+  index: false, etag: true, lastModified: true, setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|webp|mp4|webm)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 days
+    }
+    // The Power BI client and Leaflet are loaded by widget pages (bi-dashboard, radar) that a player
+    // frames in a sandboxed (opaque-origin) iframe — helmet's same-origin CORP would block them there.
+    if (filePath.includes(`${path.sep}vendor${path.sep}powerbi${path.sep}`)
       || filePath.includes(`${path.sep}vendor${path.sep}leaflet${path.sep}`)) res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-}}));
+  }
+}));
 
 // Player HTML: dynamic route. Injects a small inline window.__playerConfig
 // script before the debug-overlay.js tag so the client knows whether to send
@@ -1260,30 +1268,30 @@ if (config.triggerIngress) {
       try { sock.close(); } catch (e) { /* already gone */ }
     });
     sock.on('message', (buf, rinfo) => {
-     /*
-      * ⚠️ WRAPPED. This is a socket callback: an uncaught throw here is an uncaughtException that
-      * takes the whole server down, and a signage server dying means every screen it feeds stops.
-      * A malformed datagram from the LAN must never be able to do that.
-      */
-     try {
-      const ip = (rinfo && rinfo.address) || 'unknown';
-      if (ingressLimiter && !ingressLimiter.allow(ip, Date.now())) return;
-      const text = buf.toString('utf8', 0, Math.min(buf.length, 1024));
-      const devices = triggerDb.prepare(
-        'SELECT id, trigger_secret, triggers_accept_http, triggers_accept_udp FROM devices WHERE trigger_secret IS NOT NULL'
-      ).all();
-      const target = triggerIngress.resolveTarget(text, devices, 'udp');
-      // ⚠️ Silent on rejection. A datagram door on a LAN sees every stray broadcast; answering
-      // would both amplify traffic and tell a prober which guesses were closer.
-      if (!target.ok) return;
-      const deviceNs = app.get('io') && app.get('io').of('/device');
-      const room = deviceNs && deviceNs.adapter.rooms.get(target.deviceId);
-      if (!room || room.size === 0) return;
-      deviceNs.to(target.deviceId).emit('device:trigger-wire', { text, source: 'udp', sourceIp: ip });
-      console.log('[trigger-ingress] udp fire -> ' + target.deviceId + ' from ' + ip);
-     } catch (e) {
-      console.warn('[trigger-ingress] udp handler:', e.message);
-     }
+      /*
+       * ⚠️ WRAPPED. This is a socket callback: an uncaught throw here is an uncaughtException that
+       * takes the whole server down, and a signage server dying means every screen it feeds stops.
+       * A malformed datagram from the LAN must never be able to do that.
+       */
+      try {
+        const ip = (rinfo && rinfo.address) || 'unknown';
+        if (ingressLimiter && !ingressLimiter.allow(ip, Date.now())) return;
+        const text = buf.toString('utf8', 0, Math.min(buf.length, 1024));
+        const devices = triggerDb.prepare(
+          'SELECT id, trigger_secret, triggers_accept_http, triggers_accept_udp FROM devices WHERE trigger_secret IS NOT NULL'
+        ).all();
+        const target = triggerIngress.resolveTarget(text, devices, 'udp');
+        // ⚠️ Silent on rejection. A datagram door on a LAN sees every stray broadcast; answering
+        // would both amplify traffic and tell a prober which guesses were closer.
+        if (!target.ok) return;
+        const deviceNs = app.get('io') && app.get('io').of('/device');
+        const room = deviceNs && deviceNs.adapter.rooms.get(target.deviceId);
+        if (!room || room.size === 0) return;
+        deviceNs.to(target.deviceId).emit('device:trigger-wire', { text, source: 'udp', sourceIp: ip });
+        console.log('[trigger-ingress] udp fire -> ' + target.deviceId + ' from ' + ip);
+      } catch (e) {
+        console.warn('[trigger-ingress] udp handler:', e.message);
+      }
     });
     sock.bind(config.triggerIngressUdpPort, () => {
       console.log('[trigger-ingress] UDP door on :' + config.triggerIngressUdpPort);
@@ -1317,21 +1325,23 @@ app.get('/player/transitions.js', (req, res) => {
 // Serve web player at /player (same no-cache for JS/HTML). The index.html
 // route above intercepts the HTML requests; everything else still falls
 // through to this static handler (debug-overlay.js, sw.js, manifest, etc).
-app.use('/player', express.static(path.join(__dirname, 'player'), { etag: true, lastModified: true, setHeaders: (res, filePath) => {
-  if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
-    res.setHeader('Cache-Control', 'no-cache');
+app.use('/player', express.static(path.join(__dirname, 'player'), {
+  etag: true, lastModified: true, setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+    if (filePath.endsWith('sw.js')) {
+      // A worker's default scope is its own directory, so sw.js at /player/sw.js can only control
+      // /player/ AND BELOW — which does not include /player itself. The player is served at all three
+      // of /player, /player/ and /player/index.html, and /player (no trailing slash) is the one
+      // everybody actually uses: it is what the dashboard shows and what gets typed into a panel.
+      // On that URL the worker registered, reported success, and then controlled nothing at all — no
+      // shell cache, no content cache, no offline playback, silently. Widening the permitted scope is
+      // what makes the registration below able to claim the page it was loaded from.
+      res.setHeader('Service-Worker-Allowed', '/');
+    }
   }
-  if (filePath.endsWith('sw.js')) {
-    // A worker's default scope is its own directory, so sw.js at /player/sw.js can only control
-    // /player/ AND BELOW — which does not include /player itself. The player is served at all three
-    // of /player, /player/ and /player/index.html, and /player (no trailing slash) is the one
-    // everybody actually uses: it is what the dashboard shows and what gets typed into a panel.
-    // On that URL the worker registered, reported success, and then controlled nothing at all — no
-    // shell cache, no content cache, no offline playback, silently. Widening the permitted scope is
-    // what makes the registration below able to claim the page it was loaded from.
-    res.setHeader('Service-Worker-Allowed', '/');
-  }
-}}));
+}));
 
 // Serve setup scripts — an ALLOWLIST, not the directory.
 //
@@ -1839,7 +1849,7 @@ app.get('/api/content/:id/file', (req, res) => {
   // Scale-out (docs/scale-out.md): the row was copied, the bytes were not — fetch through, or (C3,
   // under a caches-content edge) store them here first and then serve the local file.
   if (config.primaryUrl && content.workspace_id && !fs.existsSync(safePath) &&
-      replicaProxy.isCopiedWorkspace(db.prepare('SELECT origin_node_id FROM workspaces WHERE id = ?').get(content.workspace_id))) {
+    replicaProxy.isCopiedWorkspace(db.prepare('SELECT origin_node_id FROM workspaces WHERE id = ?').get(content.workspace_id))) {
     const contentCache = require('./lib/mesh/content-cache');
     if (!contentCache.edgeForContent(db, content)) return replicaProxy.proxyToPrimary(req, res, config);
     return contentCache.ensure(db, config, content).then((r) => {
@@ -2304,6 +2314,19 @@ app.use('/api/news-feeds/preview', rateLimit(60000, 60));
   tplPublic.get(/^\/asset\/[0-9a-f]{64}\/.+$/, (req, res, next) => tplRoutes.handle(req, res, next));
   app.use('/api/templates', rateLimit(60000, 120), tplPublic);
 }
+
+/*
+ * Live Screen Cameras (lib/live-camera-hub.js, routes/live-cameras.js):
+ * Permite que telas transmitam seus frames e que outras telas / dashboard recebam o feed MJPEG/Snapshot
+ * diretamente através de tags <img> e players sem exigir cabeçalho Authorization.
+ */
+{
+  const liveCam = require('./routes/live-cameras');
+  app.get('/api/devices/:id/camera/live.mjpg', (req, res) => liveCam.mjpegHandler(req, res));
+  app.get('/api/devices/:id/camera/snapshot', (req, res) => liveCam.snapshotHandler(req, res));
+  app.post('/api/devices/:id/camera-frame', express.raw({ type: ['image/*', 'application/octet-stream'], limit: '5mb' }), express.json({ limit: '5mb' }), (req, res) => liveCam.frameHandler(req, res));
+}
+
 for (const r of PUBLIC_ROUTERS) {
   // renderBypass routers let the public /:id/render through (req._skipAuth) before bearerAuth.
   const front = r.renderBypass
@@ -2432,7 +2455,7 @@ async function updateFrontendHash() {
 }
 updateFrontendHash();
 // Recheck every 30 seconds
-setInterval(() => { updateFrontendHash().catch(() => {}); }, 30000);
+setInterval(() => { updateFrontendHash().catch(() => { }); }, 30000);
 app.get('/api/version', async (req, res) => {
   /*
    * ⚠️ NEVER ANSWER WITH AN EMPTY HASH. The first pass is asynchronous, so between boot and its
@@ -3150,10 +3173,10 @@ let _shuttingDown = false;
 function gracefulShutdown(sig) {
   if (_shuttingDown) return; _shuttingDown = true;
   console.log(`[shutdown] ${sig} — stopping WAL checkpointer + closing DB`);
-  Promise.resolve(stopWalCheckpointer()).catch(() => {}).finally(() => {
-    try { require('./lib/status-log-writer').flush(); } catch (_) {}
-    try { require('./lib/outbound-ledger').flush(); } catch (_) {}
-    try { require('./db/database').db.close(); } catch (_) {}
+  Promise.resolve(stopWalCheckpointer()).catch(() => { }).finally(() => {
+    try { require('./lib/status-log-writer').flush(); } catch (_) { }
+    try { require('./lib/outbound-ledger').flush(); } catch (_) { }
+    try { require('./db/database').db.close(); } catch (_) { }
     process.exit(0);
   });
 }
@@ -3395,8 +3418,10 @@ app.post('/api/provision/pair', requireAuth, resolveTenancy, checkDeviceLimit, (
   require('./lib/device-group-rules').reconcileDeviceAsSystem(db, null, device.id);
 
   // Notify the device via WebSocket — or, scale-out C2, through the replica it is attached to.
-  const pairedMsg = { device_id: device.id, name: pairedName, settings_pin: settingsPin,
-    brand: require('./lib/branding').playerBrandForDevice(require('./db/database').db, device.id) };   // #674
+  const pairedMsg = {
+    device_id: device.id, name: pairedName, settings_pin: settingsPin,
+    brand: require('./lib/branding').playerBrandForDevice(require('./db/database').db, device.id)
+  };   // #674
   const pairedRoom = deviceNs.adapter.rooms.get(device.id);
   if (pairedRoom && pairedRoom.size > 0) {
     deviceNs.to(device.id).emit('device:paired', pairedMsg);
@@ -3664,22 +3689,22 @@ app.get(['/webos', '/webos/'], (req, res) => {
     + (ipk.exists ? `<p class="pill">Ready \u00b7 v${ipk.version} \u00b7 ${(ipk.size / 1024 / 1024).toFixed(2)} MB</p>` : '<p class="pill">No .ipk hosted yet</p>')
     + (local.exists
       ? `<h2>USB, Local application mode</h2><p>Download <a href="${base}/webos/com.lg.app.signage.ipk">com.lg.app.signage.ipk</a>. Keep that file name: the panel installs nothing else.</p>`
-        + '<ol><li>On a FAT32 USB stick, make a folder named <code>application</code> at the root and put the file in it.</li>'
-        + '<li>On the panel, open <b>Server Settings</b>: set <b>Application Launch Mode</b> to <b>Local</b> and the application type to <b>IPK</b>, then run <b>Local Application Upgrade</b> from <b>USB</b>.</li>'
-        + '<li>Restart the panel when the upgrade finishes.</li></ol>'
-        /*
-         * ⚠️ AN SI SERVER IN LOCAL MODE INSTALLS THIS FILE, NOT ScreenTinker.ipk. A panel in Local
-         * launch mode upgrades its one Local app (id com.lg.app.signage) from the address given, and
-         * refuses a package with another id ("failed to upgrade IPK"). This page used to send SI
-         * server installs to ScreenTinker.ipk. With Fully Qualified Domain Name on, the address is
-         * the file itself; give the https:// one, since the plain http address answers with a
-         * redirect that a panel's downloader may not follow.
-         */
-        + `<h2>SI server, Local application mode</h2><p>The panel downloads the file itself from this server. In <b>Server Settings → SI Server Settings</b>:</p>`
-        + '<ol><li><b>Application Launch Mode</b>: <b>Local</b>. <b>Application Type</b>: <b>IPK</b>.</li>'
-        + `<li><b>Fully Qualified Domain Name</b>: <b>On</b>, and the address exactly <code>${base}/webos/com.lg.app.signage.ipk</code> (https, the full path to the file).</li>`
-        + '<li><b>Auto Set</b>: <b>Off</b> where the panel has it. <b>Local Application Upgrade</b>: <b>Remote</b>, then Confirm.</li>'
-        + '<li>Restart the panel when the upgrade finishes. Check the panel’s date and time first: a wrong clock fails the secure download.</li></ol>'
+      + '<ol><li>On a FAT32 USB stick, make a folder named <code>application</code> at the root and put the file in it.</li>'
+      + '<li>On the panel, open <b>Server Settings</b>: set <b>Application Launch Mode</b> to <b>Local</b> and the application type to <b>IPK</b>, then run <b>Local Application Upgrade</b> from <b>USB</b>.</li>'
+      + '<li>Restart the panel when the upgrade finishes.</li></ol>'
+      /*
+       * ⚠️ AN SI SERVER IN LOCAL MODE INSTALLS THIS FILE, NOT ScreenTinker.ipk. A panel in Local
+       * launch mode upgrades its one Local app (id com.lg.app.signage) from the address given, and
+       * refuses a package with another id ("failed to upgrade IPK"). This page used to send SI
+       * server installs to ScreenTinker.ipk. With Fully Qualified Domain Name on, the address is
+       * the file itself; give the https:// one, since the plain http address answers with a
+       * redirect that a panel's downloader may not follow.
+       */
+      + `<h2>SI server, Local application mode</h2><p>The panel downloads the file itself from this server. In <b>Server Settings → SI Server Settings</b>:</p>`
+      + '<ol><li><b>Application Launch Mode</b>: <b>Local</b>. <b>Application Type</b>: <b>IPK</b>.</li>'
+      + `<li><b>Fully Qualified Domain Name</b>: <b>On</b>, and the address exactly <code>${base}/webos/com.lg.app.signage.ipk</code> (https, the full path to the file).</li>`
+      + '<li><b>Auto Set</b>: <b>Off</b> where the panel has it. <b>Local Application Upgrade</b>: <b>Remote</b>, then Confirm.</li>'
+      + '<li>Restart the panel when the upgrade finishes. Check the panel’s date and time first: a wrong clock fails the secure download.</li></ol>'
       : '')
     + `<h2>${local.exists ? 'Other install routes' : 'Install'}</h2><p>Download <a href="${base}/webos/ScreenTinker.ipk">ScreenTinker.ipk</a> and install it on the panel:</p>`
     + '<ol><li><b>USB:</b> copy the file to a USB stick, plug it into the panel, open <b>Settings \u2192 General \u2192 Install App</b> (the exact path varies by webOS version), and pick it.</li>'
@@ -3703,7 +3728,7 @@ app.get(['/tizen', '/tizen/'], (req, res) => {
     + '.w{max-width:640px;margin:0 auto}h1{color:#34d399}code{background:#1e293b;padding:2px 8px;border-radius:4px;font-size:14px}'
     + 'ol{padding-left:20px}li{margin:8px 0}.mut{color:#94a3b8;font-size:14px}.pill{display:inline-block;background:#1e293b;border-radius:20px;padding:4px 12px;font-size:13px;color:#94a3b8}</style></head>'
     + '<body><div class="w"><h1>ScreenTinker — Samsung Signage (Tizen)</h1>'
-    + (ready ? `<p class="pill">Ready · v${wgt.version} · ${(wgt.size/1024/1024).toFixed(2)} MB</p>` : '<p class="pill">No signed .wgt hosted yet</p>')
+    + (ready ? `<p class="pill">Ready · v${wgt.version} · ${(wgt.size / 1024 / 1024).toFixed(2)} MB</p>` : '<p class="pill">No signed .wgt hosted yet</p>')
     + '<p>On the Samsung signage panel, go to <b>URL Launcher / Custom App</b> and enter:</p>'
     + `<p><code>${base}/tizen</code></p>`
     + '<p>The panel installs the ScreenTinker player as a native app, then shows a 6-digit pairing code to claim in your dashboard.</p>'

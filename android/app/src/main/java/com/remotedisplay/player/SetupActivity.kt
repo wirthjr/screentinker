@@ -217,8 +217,12 @@ class SetupActivity : AppCompatActivity() {
         // Battery-optimization exemption keeps the boot receiver from being deferred
         // and the app from being killed in standby (esp. on OEM / TV boxes).
         enableBatteryBtn.setOnClickListener {
-            val exempt = (getSystemService(Context.POWER_SERVICE) as PowerManager)
-                .isIgnoringBatteryOptimizations(packageName)
+            val exempt = try {
+                (getSystemService(Context.POWER_SERVICE) as PowerManager)
+                    .isIgnoringBatteryOptimizations(packageName)
+            } catch (_: Exception) {
+                false
+            }
             if (exempt) {
                 // ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS only ASKS to add an exemption — it
                 // offers no way to remove one, so it is a dead end for someone already exempt.
@@ -334,7 +338,14 @@ class SetupActivity : AppCompatActivity() {
 
         // Install unknown apps
         val canInstall = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            packageManager.canRequestPackageInstalls()
+            try {
+                packageManager.canRequestPackageInstalls()
+            } catch (_: SecurityException) {
+                // REQUEST_INSTALL_PACKAGES not declared in Manifest (e.g. Google Play Store build)
+                true
+            } catch (_: Exception) {
+                false
+            }
         } else true
         installStatus.text = if (canInstall) onText else offText
         installStatus.setTextColor(
@@ -344,9 +355,13 @@ class SetupActivity : AppCompatActivity() {
 
         // Notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val hasNotif = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            val hasNotif = try {
+                ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } catch (_: Exception) {
+                false
+            }
             notificationStatus.text = if (hasNotif) onText else offText
             notificationStatus.setTextColor(
                 if (hasNotif) 0xFF22C55E.toInt() else 0xFFEF4444.toInt()
@@ -356,27 +371,43 @@ class SetupActivity : AppCompatActivity() {
 
         // Launch on boot (full-screen intent — only restrictable on Android 14+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val canFsi = getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+            val canFsi = try {
+                getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+            } catch (_: Exception) {
+                false
+            }
             fullscreenStatus.text = if (canFsi) onText else offText
             fullscreenStatus.setTextColor(if (canFsi) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
             bindPermissionButton(enableFullscreenBtn, canFsi, enableText)
         }
 
         // Battery optimization exemption
-        val ignoringBattery = (getSystemService(Context.POWER_SERVICE) as PowerManager)
-            .isIgnoringBatteryOptimizations(packageName)
+        val ignoringBattery = try {
+            (getSystemService(Context.POWER_SERVICE) as PowerManager)
+                .isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            false
+        }
         batteryStatus.text = if (ignoringBattery) onText else offText
         batteryStatus.setTextColor(if (ignoringBattery) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
         bindPermissionButton(enableBatteryBtn, ignoringBattery, enableText)
 
         // Display over other apps
-        val canOverlay = Settings.canDrawOverlays(this)
+        val canOverlay = try {
+            Settings.canDrawOverlays(this)
+        } catch (_: Exception) {
+            false
+        }
         overlayStatus.text = if (canOverlay) onText else offText
         overlayStatus.setTextColor(if (canOverlay) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
         bindPermissionButton(enableOverlayBtn, canOverlay, enableText)
 
         // #160 WRITE_SETTINGS (system brightness / screen-off timeout)
-        val canWrite = Settings.System.canWrite(this)
+        val canWrite = try {
+            Settings.System.canWrite(this)
+        } catch (_: Exception) {
+            false
+        }
         writeSettingsStatus.text = if (canWrite) onText else offText
         writeSettingsStatus.setTextColor(if (canWrite) 0xFF22C55E.toInt() else 0xFFEF4444.toInt())
         bindPermissionButton(enableWriteSettingsBtn, canWrite, enableText)

@@ -76,7 +76,7 @@ const API = (url, opts = {}) => {
 
 // Widget type ids only — name + desc are looked up via t() so they switch
 // language with the rest of the UI.
-const WIDGET_TYPES = ['clock', 'weather', 'radar', 'rss', 'text', 'webpage', 'cloud-doc', 'social', 'directory-board', 'directory-search', 'menu-board', 'bi-dashboard', 'room-display', 'transition'];
+const WIDGET_TYPES = ['clock', 'weather', 'radar', 'rss', 'text', 'webpage', 'cloud-doc', 'social', 'directory-board', 'directory-search', 'menu-board', 'bi-dashboard', 'room-display', 'camera', 'transition'];
 const WIDGET_ICONS = {
   clock: '&#128339;',
   weather: '&#9925;',
@@ -91,6 +91,7 @@ const WIDGET_ICONS = {
   'cloud-doc': '&#128209;',
   'bi-dashboard': '&#128202;',
   'room-display': '&#128682;',
+  camera: '&#128249;',
   transition: '&#127916;',
   // Built-in, but never offered in the "new widget" grid: a template widget is created from the
   // Templates library (the server refuses POST /widgets for it) and edited with the same form.
@@ -506,7 +507,7 @@ function showPreviewModal(sessionId, widgetType) {
            the preview — an editor -> admin escalation. The org setting exists to let
            PLAYERS embed origin-strict sites; it is not a licence to de-isolate the
            dashboard. Covered by widget-preview-stays-isolated.test.js. -->
-      <iframe id="pvIframe" sandbox="allow-scripts" style="flex:1;width:100%;border:0;background:#000"></iframe>
+      <iframe id="pvIframe" sandbox="allow-scripts" allow="camera; microphone; autoplay; fullscreen" style="flex:1;width:100%;border:0;background:#000"></iframe>
       ${webpageNote}
     </div>`;
   document.body.appendChild(overlay);
@@ -896,6 +897,81 @@ export async function render(container) {
           <div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="wKeyboard" ${config.show_onscreen_keyboard === false ? '' : 'checked'}> ${t('widget.dirsearch.keyboard_label')}</label></div>`;
         break;
       }
+      case 'camera':
+        html += `
+          <div class="form-group">
+            <label>${t('widget.field.camera_source')}</label>
+            <select id="wCameraSource" class="input" style="background:var(--bg-input)">
+              <option value="device" ${(!config.source_type || config.source_type === 'device') ? 'selected' : ''}>${t('widget.field.camera_source_device')}</option>
+              <option value="screen_camera" ${config.source_type === 'screen_camera' ? 'selected' : ''}>Câmera de outra tela (Screen Camera)</option>
+              <option value="stream" ${config.source_type === 'stream' ? 'selected' : ''}>${t('widget.field.camera_source_stream')}</option>
+            </select>
+          </div>
+
+          <div id="wScreenGroup" style="${config.source_type === 'screen_camera' ? '' : 'display:none'}">
+            <div class="form-group">
+              <label>Tela de Origem</label>
+              <select id="wCameraTargetDevice" class="input" style="background:var(--bg-input)">
+                <option value="">Carregando telas...</option>
+              </select>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Selecione qual tela transmitirá o vídeo ao vivo para este widget.</div>
+            </div>
+          </div>
+
+          <div id="wDeviceGroup" style="${(config.source_type === 'stream' || config.source_type === 'screen_camera') ? 'display:none' : ''}">
+            <div class="form-group">
+              <label>${t('widget.field.camera_facing')}</label>
+              <select id="wCameraFacing" class="input" style="background:var(--bg-input)">
+                <option value="user" ${(!config.camera_facing || config.camera_facing === 'user') ? 'selected' : ''}>${t('widget.field.camera_facing_user')}</option>
+                <option value="environment" ${config.camera_facing === 'environment' ? 'selected' : ''}>${t('widget.field.camera_facing_environment')}</option>
+                <option value="any" ${config.camera_facing === 'any' ? 'selected' : ''}>${t('widget.field.camera_facing_any')}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="wCameraMirror" ${config.mirror === false ? '' : 'checked'}>
+                <span>${t('widget.field.camera_mirror')}<br><span style="font-size:12px;color:var(--text-muted)">${t('widget.field.camera_mirror_hint')}</span></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="wStreamGroup" style="${config.source_type === 'stream' ? '' : 'display:none'}">
+            <div class="form-group">
+              <label>${t('widget.field.camera_stream_url')}</label>
+              <input type="text" id="wStreamUrl" class="input" value="${escAttr(config.stream_url || '')}" placeholder="https://stream.server/live.m3u8 ou http://192.168.1.50/mjpg/video.mjpg">
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${t('widget.field.camera_stream_url_hint')}</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>${t('widget.field.camera_fit')}</label>
+            <select id="wCameraFit" class="input" style="background:var(--bg-input)">
+              <option value="cover" ${(!config.fit || config.fit === 'cover') ? 'selected' : ''}>${t('widget.field.camera_fit_cover')}</option>
+              <option value="contain" ${config.fit === 'contain' ? 'selected' : ''}>${t('widget.field.camera_fit_contain')}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>${t('widget.field.camera_title')}</label>
+            <input type="text" id="wCameraTitle" class="input" value="${escAttr(config.title || '')}" placeholder="Ex: Recepção Principal">
+          </div>
+
+          <div class="form-group" style="display:flex;gap:16px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="wCameraShowBadge" ${config.show_badge === false ? '' : 'checked'}>
+              ${t('widget.field.camera_show_badge')}
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="wCameraShowClock" ${config.show_clock ? 'checked' : ''}>
+              ${t('widget.field.camera_show_clock')}
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="wCameraAudio" ${config.audio ? 'checked' : ''}>
+              ${t('widget.field.camera_audio')}
+            </label>
+          </div>
+          ${backgroundField('wBg', config.background || '#000000')}`;
+        break;
       case 'transition':
         html += `
           <div class="form-group"><label>${t('widget.trans.shader')}</label>
@@ -959,6 +1035,45 @@ export async function render(container) {
       const keep = document.getElementById('wKeepConsent');
       const names = document.getElementById('wKeepNamesRow');
       if (keep && names) keep.addEventListener('change', () => { names.style.display = keep.checked ? '' : 'none'; });
+    }
+
+    if (type === 'camera') {
+      const srcSelect = document.getElementById('wCameraSource');
+      const devGroup = document.getElementById('wDeviceGroup');
+      const strGroup = document.getElementById('wStreamGroup');
+      const scrGroup = document.getElementById('wScreenGroup');
+      const devSelect = document.getElementById('wCameraTargetDevice');
+
+      async function populateScreens() {
+        if (!devSelect) return;
+        try {
+          const devs = await api.get('/live-cameras');
+          if (devs && devs.length > 0) {
+            devSelect.innerHTML = devs.map(d => `
+              <option value="${esc(d.id)}" ${config.target_device_id === d.id ? 'selected' : ''}>
+                ${esc(d.name)} ${d.camera_live ? '(🟢 Ao Vivo)' : (d.online ? '(Online)' : '(Offline)')}
+              </option>
+            `).join('');
+          } else {
+            devSelect.innerHTML = `<option value="">Nenhuma tela encontrada</option>`;
+          }
+        } catch (_) {
+          devSelect.innerHTML = `<option value="">Erro ao carregar telas</option>`;
+        }
+      }
+
+      if (srcSelect) {
+        srcSelect.addEventListener('change', () => {
+          const val = srcSelect.value;
+          if (devGroup) devGroup.style.display = val === 'device' ? '' : 'none';
+          if (strGroup) strGroup.style.display = val === 'stream' ? '' : 'none';
+          if (scrGroup) scrGroup.style.display = val === 'screen_camera' ? '' : 'none';
+          if (val === 'screen_camera') populateScreens();
+        });
+        if (srcSelect.value === 'screen_camera') {
+          populateScreens();
+        }
+      }
     }
 
     if (type === 'directory-board') {
@@ -1550,6 +1665,28 @@ export async function render(container) {
       case 'bi-dashboard': Object.assign(config, readBiConfig()); break;
         break;
       case 'room-display': Object.assign(config, readRoomConfig()); break;
+      case 'camera': {
+        const sourceType = val('wCameraSource') || 'device';
+        const targetDeviceId = val('wCameraTargetDevice') || '';
+        let streamUrl = (val('wStreamUrl') || '').trim();
+        if (sourceType === 'screen_camera' && targetDeviceId) {
+          streamUrl = `/api/devices/${encodeURIComponent(targetDeviceId)}/camera/live.mjpg`;
+        }
+        Object.assign(config, {
+          source_type: sourceType,
+          target_device_id: targetDeviceId,
+          camera_facing: val('wCameraFacing') || 'user',
+          mirror: !!document.getElementById('wCameraMirror')?.checked,
+          stream_url: streamUrl,
+          fit: val('wCameraFit') || 'cover',
+          title: (val('wCameraTitle') || '').trim(),
+          show_badge: !!document.getElementById('wCameraShowBadge')?.checked,
+          show_clock: !!document.getElementById('wCameraShowClock')?.checked,
+          audio: !!document.getElementById('wCameraAudio')?.checked,
+          background: readBackground('wBg'),
+        });
+        break;
+      }
       case 'transition': {
         const shaders = Array.from(document.querySelectorAll('#wTransList input[type=checkbox]:checked')).map(c => c.dataset.id);
         const params = {}; // per-shader tuned values held in transState.params

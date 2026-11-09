@@ -47,6 +47,7 @@ targets:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: ScreenTinker connects to your signage server on the local network.
         NSMicrophoneUsageDescription: The ScreenTinker dashboard can open a two-way intercom with this screen.
+        NSCameraUsageDescription: ScreenTinker uses the camera to display live camera feeds in widgets and playlists.
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:

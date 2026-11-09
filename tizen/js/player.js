@@ -1573,6 +1573,7 @@ PlaylistPlayer.prototype.renderWidget = function (item, single) {
   var f = document.createElement('iframe');
   f.setAttribute('frameborder', '0');
   f.setAttribute('allowfullscreen', '');
+  f.setAttribute('allow', 'camera; microphone; autoplay; fullscreen');
   f.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;opacity:0';
   var revealed = false;
   var reveal = function () {
@@ -2063,7 +2064,7 @@ function zrFrame(src, allow, vertical) {
   var f = document.createElement('iframe');
   f.setAttribute('frameborder', '0');
   f.setAttribute('allowfullscreen', '');
-  if (allow) f.setAttribute('allow', allow);
+  f.setAttribute('allow', allow || 'camera; microphone; autoplay; fullscreen');
   if (vertical) f.style.cssText = 'position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;height:100%;width:auto;aspect-ratio:9/16;max-width:100%;border:0';
   f.src = src;
   return f;

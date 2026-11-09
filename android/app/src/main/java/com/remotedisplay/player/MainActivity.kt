@@ -2766,6 +2766,10 @@ class MainActivity : AppCompatActivity() {
     fun stopAirTouch() {
         handMouseCoordinator?.stop()
         android.widget.Toast.makeText(this, "Air Touch: Desativado", android.widget.Toast.LENGTH_SHORT).show()
+        // Wait briefly for CameraX hardware session release, then notify active WebViews / zones
+        handler.postDelayed({
+            zoneManager?.reloadWebViews()
+        }, 800L)
     }
 
     override fun onStart() {

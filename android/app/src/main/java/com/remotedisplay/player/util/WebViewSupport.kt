@@ -1,6 +1,7 @@
 package com.remotedisplay.player.util
 
 import android.webkit.ConsoleMessage
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -207,6 +208,32 @@ object WebViewSupport {
                     DebugLog.w(tag, "JS error: ${msg.message()} @${msg.sourceId()}:${msg.lineNumber()}")
                 }
                 return super.onConsoleMessage(msg)
+            }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                if (request == null) return
+                try {
+                    // Check and request runtime permissions from Android OS if not yet granted
+                    val ctx = webView.context
+                    val activity = (ctx as? android.app.Activity)
+                        ?: ((ctx as? android.content.ContextWrapper)?.baseContext as? android.app.Activity)
+                    if (activity != null && android.os.Build.VERSION.SDK_INT >= 23) {
+                        val needed = mutableListOf<String>()
+                        if (activity.checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            needed.add(android.Manifest.permission.CAMERA)
+                        }
+                        if (activity.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            needed.add(android.Manifest.permission.RECORD_AUDIO)
+                        }
+                        if (needed.isNotEmpty()) {
+                            activity.requestPermissions(needed.toTypedArray(), 101)
+                        }
+                    }
+                    request.grant(request.resources)
+                } catch (e: Exception) {
+                    DebugLog.w(tag, "Failed to grant WebView media permission: ${e.message}")
+                    super.onPermissionRequest(request)
+                }
             }
         }
     }
