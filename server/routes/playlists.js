@@ -601,6 +601,12 @@ function expandChildPlaylists(items, depth, ancestors) {
       const merged = { ...child, zone_id: child.zone_id || it.zone_id };
       if (play_from) merged.play_from = play_from; else delete merged.play_from;
       if (play_until) merged.play_until = play_until; else delete merged.play_until;
+      if (it.schedules && it.schedules.length) {
+        merged.schedules = it.schedules;
+      }
+      if (it.play_when && !merged.play_when) {
+        merged.play_when = it.play_when;
+      }
       out.push(merged);
     }
   }

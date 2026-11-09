@@ -575,3 +575,39 @@ test('a refused nesting on a display that has no playlist yet leaves no empty pl
   check.close();
   assert.equal(d.playlist_id, null, 'the display was not given a playlist for a refused add');
 });
+
+test('a child playlist item schedule blocks are inherited by expanded items in snapshot', async () => {
+  const inner = await newPlaylist('inner-sched');
+  const outer = await newPlaylist('outer-sched');
+  await addContent(inner.id);
+  await api(`/api/playlists/${inner.id}/publish`, J(jwt, {}));
+
+  const itemRes = await addChild(outer.id, inner.id);
+  assert.ok(itemRes.status === 200 || itemRes.status === 201);
+  const itemId = itemRes.body.id;
+
+  // Add schedule block to the child playlist item in outer (Monday only)
+  const schedRes = await api(`/api/playlists/${outer.id}/items/${itemId}/schedules`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({
+      blocks: [{ days: [1], start: '03:00', end: '23:59', start_date: null, end_date: null }]
+    })
+  });
+  assert.equal(schedRes.status, 200);
+
+  // Publish outer playlist
+  const pubRes = await api(`/api/playlists/${outer.id}/publish`, J(jwt, {}));
+  assert.equal(pubRes.status, 200);
+
+  const raw = dbHandle();
+  const pl = raw.prepare('SELECT published_snapshot FROM playlists WHERE id = ?').get(outer.id);
+  raw.close();
+
+  const snapshot = JSON.parse(pl.published_snapshot);
+  assert.ok(snapshot.length >= 1, 'snapshot must have expanded item');
+  assert.ok(snapshot[0].schedules && snapshot[0].schedules.length === 1, 'expanded item must inherit schedules from parent item');
+  assert.deepEqual(snapshot[0].schedules[0].days, [1]);
+  assert.equal(snapshot[0].schedules[0].start, '03:00');
+  assert.equal(snapshot[0].schedules[0].end, '23:59');
+});
